@@ -3,6 +3,8 @@ import { TipoVidrio, CAMARAS } from '@/data/vidrios';
 import { ACCESORIOS } from '@/data/accesorios';
 import { aplicarPorcentaje, aplicarIVA, getPorcentaje } from '@/data/porcentajes';
 import { calcularCostoVidrio, CalculoVidrioResult } from '@/utils/calculosVidrios';
+import { ACABADOS } from '@/data/acabados';
+
 
 export interface ResultadoCalculo {
   pesoTotalAluminio: number;
@@ -51,6 +53,11 @@ export interface ResultadoCalculo {
     precioVentaAccesorios: number;
     precioVentaTotal: number;
     precioVentaConIVA: number;
+  };
+  acabado: { // Nueva propiedad
+    id: string;
+    color: string;
+    preciokg: number;
   };
 }
 
@@ -103,8 +110,10 @@ export const calcularVentanaCorrediza2Hojas = (
   esDvh: boolean,
   espesorCamara: number = 6,
   vidriosData: TipoVidrio[],
-  precioAluminioKg: number = 16000
+  acabadoId: string = 'blanco-brillante' // Nuevo parámetro
 ): ResultadoCalculo => {
+  const acabado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
+  const precioAluminioKg = acabado.preciokg;
   const vidrioExterior = vidriosData.find(v => v.id === vidrioExteriorId);
   const vidrioInterior = vidriosData.find(v => v.id === vidrioInteriorId);
   
@@ -234,6 +243,11 @@ export const calcularVentanaCorrediza2Hojas = (
       precioVentaAccesorios,
       precioVentaTotal,
       precioVentaConIVA
+    },
+    acabado: {
+      id: acabado.id,
+      color: acabado.color,
+      preciokg: acabado.preciokg
     }
   };
 };
