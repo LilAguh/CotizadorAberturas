@@ -12,7 +12,7 @@ export const ACABADOS: Acabado[] = [
     id: 'blanco-brillante',
     color: 'Blanco Brillante',
     descripcion: 'Acabado estándar blanco brillante',
-    preciokg: 16000,
+    preciokg: 16672,
     disponible: true
   },
   {

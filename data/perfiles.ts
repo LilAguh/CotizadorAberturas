@@ -2,7 +2,7 @@ export type Perfil = {
   id: number;
   nombre: string;
   sistema: string[];
-  tipo: 'marco' | 'hoja';
+  tipo: 'marco' | 'hoja' | 'mosquitero';
   pesoKgMl: number;
 };
 
@@ -64,5 +64,26 @@ export const PERFILES: Perfil[] = [
     tipo: 'hoja',
     pesoKgMl: 0.640
   },
+  {
+    id: 3255,
+    nombre: 'Hoja Mosquitero',
+    sistema: ['mosquitero'],
+    tipo: 'mosquitero',
+    pesoKgMl: 0.432
+  },
+  {
+    id: 3256,
+    nombre: 'Travesaño mosquitero',
+    sistema: ['mosquitero'],
+    tipo: 'mosquitero',
+    pesoKgMl: 0.535
+  },
+  {
+    id: 3228,
+    nombre: 'Tope de mosquitero',
+    sistema: ['mosquitero'],
+    tipo: 'mosquitero', 
+    pesoKgMl: 0.188
+  }
 ]
 

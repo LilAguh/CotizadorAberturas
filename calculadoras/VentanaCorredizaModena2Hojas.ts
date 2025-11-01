@@ -5,7 +5,6 @@ import { aplicarPorcentaje, aplicarIVA, getPorcentaje } from '@/data/porcentajes
 import { calcularCostoVidrio, CalculoVidrioResult } from '@/utils/calculosVidrios';
 import { ACABADOS } from '@/data/acabados';
 
-
 export interface ResultadoCalculo {
   pesoTotalAluminio: number;
   detallesAluminio: Array<{
@@ -54,19 +53,173 @@ export interface ResultadoCalculo {
     precioVentaTotal: number;
     precioVentaConIVA: number;
   };
-  acabado: { // Nueva propiedad
+  acabado: {
     id: string;
     color: string;
     preciokg: number;
   };
+  incluirMosquitero?: boolean;
 }
 
-// Función para calcular accesorios específicos de Modena 2 Hojas
+export interface ResultadoVentanaConMosquitero {
+  ventana: ResultadoCalculo;
+  mosquitero?: ResultadoCalculo;
+  precioTotalConIVA: number;
+}
+
+const calcularMosquiteroModena2Hojas = (ancho: number, alto: number, acabadoId: string = 'blanco-brillante'): ResultadoCalculo => {
+  const acabado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
+  const precioAluminioKg = acabado.preciokg;
+
+  const perfiles = {
+    perimetral: PERFILES.find(p => p.id === 3255)!,
+    central: PERFILES.find(p => p.id === 3256)!,
+    tope: PERFILES.find(p => p.id === 3228)!,
+  };
+
+  // Perfil perimetral: tamaño del parante central - 9cm (2 iguales)
+  const jambaMosquitero = alto - 88;
+  const cantidadJambas = 2;
+  
+  // Superior e inferior: zocalo y cabezal + 18mm
+  const zocaloYCabezalMosquitero = (ancho / 2) + 2;
+  const cantidadZocaloYCabezalMosquitero = 2;
+  
+  // Perfil central (solo si altura > 1800mm)
+  const tieneTravesano = alto > 1800;
+  const TravesanoMosquitero = tieneTravesano ? (alto / 2) - 64 : 0;
+  
+  // Tope de mosquitero
+  const topeMosquitero = alto - 100;
+  const cantidadTopesMosquitero = 2;
+
+  const perfilesMosquitero = [
+    { 
+      perfilId: perfiles.perimetral.id, 
+      nombre: 'Perfil Jambas de mosquitero', 
+      largoPorPieza: jambaMosquitero,
+      cantidad: cantidadJambas,
+      metrosLineales: (jambaMosquitero * cantidadJambas) / 1000,
+      peso: ((jambaMosquitero * cantidadJambas) / 1000) * perfiles.perimetral.pesoKgMl
+    },
+    { 
+      perfilId: perfiles.perimetral.id, 
+      nombre: 'Perfil Zócalo y cabezal de mosquitero', 
+      largoPorPieza: zocaloYCabezalMosquitero,
+      cantidad: cantidadZocaloYCabezalMosquitero,
+      metrosLineales: (zocaloYCabezalMosquitero * cantidadZocaloYCabezalMosquitero) / 1000,
+      peso: ((zocaloYCabezalMosquitero * cantidadZocaloYCabezalMosquitero) / 1000) * perfiles.perimetral.pesoKgMl
+    }
+  ];
+
+  if (tieneTravesano) {
+    perfilesMosquitero.push({
+      perfilId: perfiles.central.id,
+      nombre: 'Perfil Travesaño de mosquitero',
+      largoPorPieza: TravesanoMosquitero,
+      cantidad: 1,
+      metrosLineales: TravesanoMosquitero / 1000,
+      peso: (TravesanoMosquitero / 1000) * perfiles.central.pesoKgMl
+    });
+  }
+
+  perfilesMosquitero.push({
+    perfilId: perfiles.tope.id,
+    nombre: 'Tope de mosquitero',
+    largoPorPieza: topeMosquitero,
+    cantidad: cantidadTopesMosquitero,
+    metrosLineales: (topeMosquitero * cantidadTopesMosquitero) / 1000,
+    peso: ((topeMosquitero * cantidadTopesMosquitero) / 1000) * perfiles.tope.pesoKgMl
+  });
+
+  const pesoTotalAluminio = perfilesMosquitero.reduce((total, detalle) => total + detalle.peso, 0);
+
+  // Cálculo de accesorios del mosquitero
+  const anchoMosquitero = (ancho / 2) + 2;
+  const altoMosquitero = alto - 88;
+  const perimetro = 2 * (anchoMosquitero + altoMosquitero);
+  const perimetroM = perimetro / 1000;
+  const areaM2 = (anchoMosquitero * altoMosquitero) / 1000000;
+
+  const accesoriosMosquitero = [
+    { id: 'TORNILLO2', cantidad: 16 },
+    { id: 'TORNILLO3', cantidad: 6 },
+    { id: 'ME73', cantidad: 4 },
+    { id: 'MR39', cantidad: 2 },
+    { id: 'MPR43', cantidad: 2 },
+    { id: 'MB70', cantidad: perimetroM },
+    { id: 'MB9', cantidad: (altoMosquitero * 2) / 1000 },
+    { id: 'TELA1', cantidad: areaM2 }
+  ].map(item => {
+    const accesorio = ACCESORIOS.find(a => a.id === item.id);
+    const precioTotal = accesorio ? item.cantidad * accesorio.precioUnitario : 0;
+    
+    return {
+      id: item.id,
+      nombre: accesorio?.nombre || item.id,
+      cantidad: item.cantidad,
+      precioTotal,
+      unidad: accesorio?.unidad || 'unidad'
+    };
+  });
+
+  const costoAccesorios = accesoriosMosquitero.reduce((total, item) => total + item.precioTotal, 0);
+
+  // CÁLCULO DE PRECIOS DEL MOSQUITERO
+  const costoAluminio = pesoTotalAluminio * precioAluminioKg;
+  const costoVidrio = 0; // El mosquitero no tiene vidrio
+
+  // Aplicar ganancias
+  const gananciaAluminio = getPorcentaje('aluminio');
+  const gananciaAccesorios = getPorcentaje('accesorios');
+
+  const precioVentaAluminio = aplicarPorcentaje(costoAluminio, gananciaAluminio);
+  const precioVentaAccesorios = aplicarPorcentaje(costoAccesorios, gananciaAccesorios);
+
+  const precioVentaTotal = precioVentaAluminio + precioVentaAccesorios;
+  const precioVentaConIVA = aplicarIVA(precioVentaTotal);
+
+  return {
+    pesoTotalAluminio,
+    detallesAluminio: perfilesMosquitero,
+    vidrios: {
+      ancho: 0,
+      alto: 0,
+      cantidad: 0,
+      areaTotal: 0,
+      areaPaño: 0,
+      perimetroPaño: 0,
+      precioVidrio: 0,
+      esDvh: false
+    },
+    accesorios: {
+      lista: accesoriosMosquitero,
+      total: costoAccesorios
+    },
+    precios: {
+      costoAluminio,
+      costoVidrio,
+      costoAccesorios,
+      precioVentaVidrio: 0,
+      precioVentaAluminio,
+      precioVentaAccesorios,
+      precioVentaTotal,
+      precioVentaConIVA
+    },
+    acabado: {
+      id: acabado.id,
+      color: acabado.color,
+      preciokg: acabado.preciokg
+    },
+    incluirMosquitero: true
+  };
+};
+
+// Función para calcular accesorios específicos de Modena 2 Hojas (solo ventana, sin mosquitero)
 const calcularAccesoriosModena2Hojas = (ancho: number, alto: number) => {
   const perimetro = 2 * (ancho + alto);
   const perimetroM = perimetro / 1000;
   
-  // Fórmulas basadas en tus ejemplos
   const calcularMetrajeBurlete = () => (perimetro * 0.8) / 1000;
   const calcularMetrajeFelpa = () => (perimetro * 0.6) / 1000;
   
@@ -102,6 +255,13 @@ const calcularAccesoriosModena2Hojas = (ancho: number, alto: number) => {
   });
 };
 
+// Función helper local
+const getPrecioCamara = (espesor: number): number => {
+  const camara = CAMARAS.find(c => c.espesor === espesor);
+  return camara ? camara.precioMl : 7000;
+};
+
+// Función principal modificada para manejar ambos casos
 export const calcularVentanaCorrediza2Hojas = (
   ancho: number,
   alto: number,
@@ -110,8 +270,16 @@ export const calcularVentanaCorrediza2Hojas = (
   esDvh: boolean,
   espesorCamara: number = 6,
   vidriosData: TipoVidrio[],
-  acabadoId: string = 'blanco-brillante' // Nuevo parámetro
-): ResultadoCalculo => {
+  acabadoId: string = 'blanco-brillante',
+  incluirMosquitero: boolean = false,
+  soloMosquitero: boolean = false
+): ResultadoCalculo | ResultadoVentanaConMosquitero => {
+  
+  // Si es solo mosquitero, retornamos solo el cálculo del mosquitero
+  if (soloMosquitero) {
+    return calcularMosquiteroModena2Hojas(ancho, alto, acabadoId);
+  }
+
   const acabado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
   const precioAluminioKg = acabado.preciokg;
   const vidrioExterior = vidriosData.find(v => v.id === vidrioExteriorId);
@@ -119,10 +287,8 @@ export const calcularVentanaCorrediza2Hojas = (
   
   if (!vidrioExterior || !vidrioInterior) throw new Error('Tipo de vidrio no válido');
 
-  // Determinar prefijo de IDs según si es DVH o no
   const prefijoId = esDvh ? 3 : 1;
   
-  // Obtener perfiles específicos
   const perfiles = {
     marcoDintel: PERFILES.find(p => p.id === 1200)!,
     marcoJamba: PERFILES.find(p => p.id === 1201)!,
@@ -131,7 +297,7 @@ export const calcularVentanaCorrediza2Hojas = (
     zocalo: PERFILES.find(p => p.id === prefijoId * 1000 + 202)!
   };
 
-  // Cálculos de aluminio
+  // Cálculos de aluminio para ventana (SIN mosquitero)
   const calculos = {
     marcoDintel: {
       largoPorPieza: ancho - 42,
@@ -175,12 +341,11 @@ export const calcularVentanaCorrediza2Hojas = (
 
   const pesoTotalAluminio = detallesAluminio.reduce((total, detalle) => total + detalle.peso, 0);
 
-  // CÁLCULO DE VIDRIOS (CORREGIDO) - 2 UNIDADES DE DVH PARA 2 HOJAS
+  // Cálculo de vidrios
   const anchoVidrioPaño = ((ancho - 50) / 2) - 52;
   const altoVidrioPaño = (alto - 79) - 90;
-  const cantidadUnidadesDVH = 2; // 2 hojas = 2 unidades de DVH
+  const cantidadUnidadesDVH = 2;
 
-  // Calcular costo de 1 unidad de DVH (2 vidrios + 1 cámara)
   const resultadoVidrioUnidad: CalculoVidrioResult = calcularCostoVidrio(
     anchoVidrioPaño,
     altoVidrioPaño,
@@ -190,21 +355,19 @@ export const calcularVentanaCorrediza2Hojas = (
     espesorCamara
   );
 
-  // Multiplicar por la cantidad de unidades de DVH
-  const areaTotal = resultadoVidrioUnidad.area * 2 * cantidadUnidadesDVH; // 2 vidrios por unidad × 2 unidades
+  const areaTotal = resultadoVidrioUnidad.area * 2 * cantidadUnidadesDVH;
   const costoVidrio = resultadoVidrioUnidad.costoReal * cantidadUnidadesDVH;
 
-  // Cálculo de accesorios
+  // Cálculo de accesorios de la ventana (SIN mosquitero)
   const accesoriosLista = calcularAccesoriosModena2Hojas(ancho, alto);
   const costoAccesorios = accesoriosLista.reduce((total, item) => total + item.precioTotal, 0);
 
-  // CÁLCULO DE PRECIOS CON GANANCIAS INDIVIDUALES
+  // Cálculo de precios de la ventana
   const costoAluminio = pesoTotalAluminio * precioAluminioKg;
   
-  // Aplicar ganancias individuales
-  const gananciaVidrio = getPorcentaje('vidrio'); // 100%
-  const gananciaAluminio = getPorcentaje('aluminio'); // 40%
-  const gananciaAccesorios = getPorcentaje('accesorios'); // 35%
+  const gananciaVidrio = getPorcentaje('vidrio');
+  const gananciaAluminio = getPorcentaje('aluminio');
+  const gananciaAccesorios = getPorcentaje('accesorios');
 
   const precioVentaVidrio = aplicarPorcentaje(costoVidrio, gananciaVidrio);
   const precioVentaAluminio = aplicarPorcentaje(costoAluminio, gananciaAluminio);
@@ -213,7 +376,7 @@ export const calcularVentanaCorrediza2Hojas = (
   const precioVentaTotal = precioVentaVidrio + precioVentaAluminio + precioVentaAccesorios;
   const precioVentaConIVA = aplicarIVA(precioVentaTotal);
 
-  return {
+  const resultadoVentana: ResultadoCalculo = {
     pesoTotalAluminio,
     detallesAluminio,
     vidrios: {
@@ -248,18 +411,66 @@ export const calcularVentanaCorrediza2Hojas = (
       id: acabado.id,
       color: acabado.color,
       preciokg: acabado.preciokg
-    }
+    },
+    incluirMosquitero: false
   };
+
+  // Si incluye mosquitero, retornamos ambos cálculos separados
+  if (incluirMosquitero) {
+    const resultadoMosquitero = calcularMosquiteroModena2Hojas(ancho, alto, acabadoId);
+    const precioTotalConIVA = resultadoVentana.precios.precioVentaConIVA + resultadoMosquitero.precios.precioVentaConIVA;
+    
+    return {
+      ventana: resultadoVentana,
+      mosquitero: resultadoMosquitero,
+      precioTotalConIVA
+    };
+  }
+
+  // Si no incluye mosquitero, retornamos solo la ventana
+  return resultadoVentana;
 };
 
-// Función helper local
-const getPrecioCamara = (espesor: number): number => {
-  const camara = CAMARAS.find(c => c.espesor === espesor);
-  return camara ? camara.precioMl : 7000;
+// Función para formatear resultado cuando es solo mosquitero
+export const formatearResultadoSoloMosquitero = (resultado: ResultadoCalculo, anchoOriginal: number, altoOriginal: number): string => {
+  return `
+MOSQUITERO MODENA - ${anchoOriginal}x${altoOriginal} mm
+=============================================
+
+DETALLES DE ALUMINIO:
+${resultado.detallesAluminio.map(d => 
+  `- ${d.nombre}: ${d.cantidad} piezas de ${d.largoPorPieza.toFixed(0)}mm (${d.metrosLineales.toFixed(2)} ml) - ${d.peso.toFixed(2)} kg`
+).join('\n')}
+
+PESO TOTAL ALUMINIO: ${resultado.pesoTotalAluminio.toFixed(2)} kg
+
+ACCESORIOS:
+${resultado.accesorios.lista.map(a => 
+  `- ${a.nombre}: ${a.cantidad} ${a.unidad} - $${a.precioTotal.toFixed(2)}`
+).join('\n')}
+Total accesorios: $${resultado.accesorios.total.toFixed(2)}
+
+PRECIOS:
+- Costo real aluminio: $${resultado.precios.costoAluminio.toFixed(2)}
+- Costo real accesorios: $${resultado.precios.costoAccesorios.toFixed(2)}
+- SUBTOTAL COSTOS: $${(resultado.precios.costoAluminio + resultado.precios.costoAccesorios).toFixed(2)}
+
+PRECIO DE VENTA:
+- Aluminio + ganancia (40%): $${resultado.precios.precioVentaAluminio.toFixed(2)}
+- Accesorios + ganancia (35%): $${resultado.precios.precioVentaAccesorios.toFixed(2)}
+- TOTAL SIN IVA: $${resultado.precios.precioVentaTotal.toFixed(2)}
+- TOTAL CON IVA (21%): $${resultado.precios.precioVentaConIVA.toFixed(2)}
+
+CORTES DE ALUMINIO:
+${resultado.detallesAluminio.map(d => 
+  `- ${d.nombre}: ${d.cantidad} piezas de ${d.largoPorPieza.toFixed(0)}mm`
+).join('\n')}
+  `.trim();
 };
 
 export const formatearResultadoModena2Hojas = (resultado: ResultadoCalculo, anchoOriginal: number, altoOriginal: number): string => {
   const esDvh = resultado.vidrios.esDvh || false;
+  const incluyeMosquitero = resultado.incluirMosquitero || false;
   
   let seccionDvh = '';
   if (esDvh && resultado.vidrios.detallesDvh) {
@@ -281,6 +492,7 @@ CÁLCULO DVH (POR UNIDAD):
 
   return `
 VENTANA CORREDIZA MODENA 2 HOJAS - ${anchoOriginal}x${altoOriginal} mm
+${incluyeMosquitero ? 'INCLUYE MOSQUITERO' : ''}
 ===================================================================
 
 MEDIDAS TOTALES:
@@ -325,10 +537,31 @@ PRECIO DE VENTA:
 - TOTAL CON IVA (21%): $${resultado.precios.precioVentaConIVA.toFixed(2)}
 
 CORTES DE ALUMINIO:
-- Marco Dintel/Umbral: ${resultado.detallesAluminio[0].cantidad} piezas de ${resultado.detallesAluminio[0].largoPorPieza.toFixed(0)}mm
-- Marco Jamba: ${resultado.detallesAluminio[1].cantidad} piezas de ${resultado.detallesAluminio[1].largoPorPieza.toFixed(0)}mm
-- Parante Lateral: ${resultado.detallesAluminio[2].cantidad} piezas de ${resultado.detallesAluminio[2].largoPorPieza.toFixed(0)}mm
-- Parante Central: ${resultado.detallesAluminio[3].cantidad} piezas de ${resultado.detallesAluminio[3].largoPorPieza.toFixed(0)}mm
-- Zócalo: ${resultado.detallesAluminio[4].cantidad} piezas de ${resultado.detallesAluminio[4].largoPorPieza.toFixed(0)}mm
+${resultado.detallesAluminio.map(d => 
+  `- ${d.nombre}: ${d.cantidad} piezas de ${d.largoPorPieza.toFixed(0)}mm`
+).join('\n')}
+  `.trim();
+};
+
+// Función para formatear cuando hay ventana + mosquitero
+export const formatearResultadoVentanaConMosquitero = (resultado: ResultadoVentanaConMosquitero, anchoOriginal: number, altoOriginal: number): string => {
+  const ventanaFormateada = formatearResultadoModena2Hojas(resultado.ventana, anchoOriginal, altoOriginal);
+  const mosquiteroFormateado = formatearResultadoSoloMosquitero(resultado.mosquitero!, anchoOriginal, altoOriginal);
+  
+  return `
+${ventanaFormateada}
+
+=============================================
+         MOSQUITERO INCLUIDO
+=============================================
+
+${mosquiteroFormateado}
+
+=============================================
+           PRECIO COMBINADO
+=============================================
+- Ventana: $${resultado.ventana.precios.precioVentaConIVA.toFixed(2)}
+- Mosquitero: $${resultado.mosquitero!.precios.precioVentaConIVA.toFixed(2)}
+- TOTAL: $${resultado.precioTotalConIVA.toFixed(2)}
   `.trim();
 };

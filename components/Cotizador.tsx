@@ -1,14 +1,20 @@
 // components/Cotizador.tsx
 "use client";
 import React, { useState } from "react";
-import { calcularVentanaCorrediza2Hojas, formatearResultadoModena2Hojas } from "@/calculadoras/VentanaCorredizaModena2Hojas";
+import { 
+  calcularVentanaCorrediza2Hojas, 
+  formatearResultadoModena2Hojas,
+  formatearResultadoSoloMosquitero,
+  formatearResultadoVentanaConMosquitero,
+  ResultadoVentanaConMosquitero 
+} from "@/calculadoras/VentanaCorredizaModena2Hojas";
 import { calcularPañoFijoModena, formatearResultadoPañoFijo } from "@/calculadoras/PañoFijoModena";
 import { VIDRIOS, CAMARAS } from "@/data/vidrios";
 import { ACABADOS } from "@/data/acabados";
 import PresupuestoPDF from "./PresupuestoPDF";
 import PresupuestoDetalladoPDF from "./PresupuestoDetalladoPDF";
 
-type TipoVentana = 'corrediza2hojas' | 'pañoFijo';
+type TipoVentana = 'corrediza2hojas' | 'pañoFijo' | 'mosquitero';
 
 interface VentanaAcumulada {
   id: string;
@@ -25,6 +31,7 @@ interface VentanaAcumulada {
     color: string;
     preciokg: number;
   };
+  incluirMosquitero?: boolean;
 }
 
 // Función para generar número de presupuesto
@@ -50,6 +57,8 @@ export default function Cotizador() {
   const [resultado, setResultado] = useState("");
   const [ventanasAcumuladas, setVentanasAcumuladas] = useState<VentanaAcumulada[]>([]);
   const [mostrarDetallesId, setMostrarDetallesId] = useState<string | null>(null);
+  const [incluirMosquitero, setIncluirMosquitero] = useState(false);
+  const [soloMosquitero, setSoloMosquitero] = useState(false);
   
   // Estados para datos del cliente
   const [cliente, setCliente] = useState({
@@ -62,7 +71,8 @@ export default function Cotizador() {
 
   const tiposVentanaNombres = {
     'corrediza2hojas': 'Ventana Corrediza 2 Hojas',
-    'pañoFijo': 'Paño Fijo Modena'
+    'pañoFijo': 'Paño Fijo Modena',
+    'mosquitero': 'Mosquitero Modena'
   };
 
   const cotizar = () => {
@@ -75,16 +85,24 @@ export default function Cotizador() {
     }
 
     try {
-      let calculo;
-      let resultadoFormateado;
+      let calculo: any;
+      let resultadoFormateado: string;
 
       switch (tipoVentana) {
         case 'corrediza2hojas':
           calculo = calcularVentanaCorrediza2Hojas(
             anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-            esDvh, espesorCamara, VIDRIOS, acabadoId
+            esDvh, espesorCamara, VIDRIOS, acabadoId, 
+            incluirMosquitero, soloMosquitero
           );
-          resultadoFormateado = formatearResultadoModena2Hojas(calculo, anchoNum, altoNum);
+          
+          if (soloMosquitero) {
+            resultadoFormateado = formatearResultadoSoloMosquitero(calculo, anchoNum, altoNum);
+          } else if (incluirMosquitero && (calculo as any).mosquitero) {
+            resultadoFormateado = formatearResultadoVentanaConMosquitero(calculo as any, anchoNum, altoNum);
+          } else {
+            resultadoFormateado = formatearResultadoModena2Hojas(calculo, anchoNum, altoNum);
+          }
           break;
 
         case 'pañoFijo':
@@ -106,61 +124,105 @@ export default function Cotizador() {
   };
 
   const agregarAlPresupuesto = () => {
-    const anchoNum = Number(ancho);
-    const altoNum = Number(alto);
-    
-    if (!anchoNum || !altoNum) {
-      alert("❌ Por favor ingrese ancho y alto válidos antes de agregar al presupuesto");
-      return;
+  const anchoNum = Number(ancho);
+  const altoNum = Number(alto);
+  
+  if (!anchoNum || !altoNum) {
+    alert("❌ Por favor ingrese ancho y alto válidos antes de agregar al presupuesto");
+    return;
+  }
+
+  try {
+    const calculos = [];
+    const acabadoSeleccionado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
+
+    if (tipoVentana === 'corrediza2hojas') {
+      const calculo = calcularVentanaCorrediza2Hojas(
+        anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
+        esDvh, espesorCamara, VIDRIOS, acabadoId, 
+        incluirMosquitero, soloMosquitero
+      );
+
+      if (soloMosquitero) {
+        // Solo mosquitero - calculo es ResultadoCalculo
+        const resultadoMosquitero = calculo as any;
+        calculos.push({
+          calculo: resultadoMosquitero,
+          tipo: 'mosquitero' as const,
+          tipoNombre: 'Mosquitero Modena',
+          precioConIVA: resultadoMosquitero.precios.precioVentaConIVA
+        });
+      } else if (incluirMosquitero) {
+        // Ventana + mosquitero - calculo es ResultadoVentanaConMosquitero
+        const resultadoCombinado = calculo as ResultadoVentanaConMosquitero;
+        
+        // Agregar ventana
+        calculos.push({
+          calculo: resultadoCombinado.ventana,
+          tipo: 'corrediza2hojas' as const,
+          tipoNombre: 'Ventana Corrediza 2 Hojas',
+          precioConIVA: resultadoCombinado.ventana.precios.precioVentaConIVA
+        });
+        
+        // Agregar mosquitero
+        calculos.push({
+          calculo: resultadoCombinado.mosquitero!,
+          tipo: 'mosquitero' as const,
+          tipoNombre: 'Mosquitero Modena',
+          precioConIVA: resultadoCombinado.mosquitero!.precios.precioVentaConIVA
+        });
+      } else {
+        // Solo ventana - calculo es ResultadoCalculo
+        const resultadoVentana = calculo as any;
+        calculos.push({
+          calculo: resultadoVentana,
+          tipo: 'corrediza2hojas' as const,
+          tipoNombre: 'Ventana Corrediza 2 Hojas',
+          precioConIVA: resultadoVentana.precios.precioVentaConIVA
+        });
+      }
+    } else if (tipoVentana === 'pañoFijo') {
+      const calculo = calcularPañoFijoModena(
+        anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
+        esDvh, espesorCamara, VIDRIOS, acabadoId
+      );
+      calculos.push({
+        calculo,
+        tipo: 'pañoFijo' as const,
+        tipoNombre: 'Paño Fijo Modena',
+        precioConIVA: calculo.precios.precioVentaConIVA
+      });
     }
 
-    try {
-      let calculo;
-      const acabadoSeleccionado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
-
-      switch (tipoVentana) {
-        case 'corrediza2hojas':
-          calculo = calcularVentanaCorrediza2Hojas(
-            anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-            esDvh, espesorCamara, VIDRIOS, acabadoId
-          );
-          break;
-
-        case 'pañoFijo':
-          calculo = calcularPañoFijoModena(
-            anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-            esDvh, espesorCamara, VIDRIOS, acabadoId
-          );
-          break;
-
-        default:
-          throw new Error('Tipo de ventana no válido');
-      }
-
+    // Agregar todos los cálculos al presupuesto
+    calculos.forEach(({ calculo, tipo, tipoNombre, precioConIVA }) => {
       const nuevaVentana: VentanaAcumulada = {
-        id: Date.now().toString(),
-        tipo: tipoVentana,
-        tipoNombre: tiposVentanaNombres[tipoVentana],
+        id: Date.now().toString() + Math.random(),
+        tipo: tipo,
+        tipoNombre: tipoNombre,
         ancho: anchoNum,
         alto: altoNum,
         medidas: `${anchoNum}x${altoNum} mm`,
-        precioConIVA: calculo.precios.precioVentaConIVA,
+        precioConIVA: precioConIVA,
         detalles: calculo,
         timestamp: Date.now(),
         acabado: {
           id: acabadoSeleccionado.id,
           color: acabadoSeleccionado.color,
           preciokg: acabadoSeleccionado.preciokg
-        }
+        },
+        incluirMosquitero: tipo === 'mosquitero' ? true : (tipo === 'corrediza2hojas' ? incluirMosquitero : false)
       };
 
       setVentanasAcumuladas(prev => [...prev, nuevaVentana]);
-      setResultado(""); // Limpiar resultado anterior
-      
-    } catch (error) {
-      alert("❌ Error al agregar al presupuesto. Verifique los datos.");
-    }
-  };
+    });
+
+    setResultado("");
+    
+  } catch (error) {
+    alert("❌ Error al agregar al presupuesto. Verifique los datos.");
+  }
+};
 
   const eliminarVentana = (id: string) => {
     setVentanasAcumuladas(prev => prev.filter(v => v.id !== id));
@@ -180,6 +242,8 @@ export default function Cotizador() {
         return formatearResultadoModena2Hojas(ventana.detalles, ventana.ancho, ventana.alto);
       case 'pañoFijo':
         return formatearResultadoPañoFijo(ventana.detalles, ventana.ancho, ventana.alto);
+      case 'mosquitero':
+        return formatearResultadoSoloMosquitero(ventana.detalles, ventana.ancho, ventana.alto);
       default:
         return "Tipo de ventana no reconocido";
     }
@@ -269,7 +333,14 @@ export default function Cotizador() {
                   <label className="block text-sm font-semibold mb-2">Tipo de Abertura</label>
                   <select
                     value={tipoVentana}
-                    onChange={(e) => setTipoVentana(e.target.value as TipoVentana)}
+                    onChange={(e) => {
+                      setTipoVentana(e.target.value as TipoVentana);
+                      // Resetear estados de mosquitero cuando cambia el tipo
+                      if (e.target.value !== 'corrediza2hojas') {
+                        setIncluirMosquitero(false);
+                        setSoloMosquitero(false);
+                      }
+                    }}
                     className="select"
                   >
                     <option value="corrediza2hojas">Ventana Corrediza Modena 2 Hojas</option>
@@ -325,30 +396,77 @@ export default function Cotizador() {
                     checked={esDvh}
                     onChange={(e) => setEsDvh(e.target.checked)}
                     className="h-4 w-4"
+                    disabled={soloMosquitero}
                   />
-                  <label htmlFor="esDvh" className="text-sm font-medium">
+                  <label htmlFor="esDvh" className={`text-sm font-medium ${soloMosquitero ? 'opacity-50' : ''}`}>
                     🔲 ¿Es Doble Vidriado Hermético (DVH)?
                   </label>
                 </div>
 
+                {/* Opciones de Mosquitero para Ventana Corrediza */}
+                {tipoVentana === 'corrediza2hojas' && (
+                  <>
+                    <div className="flex items-center space-x-2 p-3 bg-secondary rounded">
+                      <input
+                        type="checkbox"
+                        id="incluirMosquitero"
+                        checked={incluirMosquitero}
+                        onChange={(e) => {
+                          setIncluirMosquitero(e.target.checked);
+                          if (e.target.checked) {
+                            setSoloMosquitero(false); // No pueden estar ambos activos
+                          }
+                        }}
+                        className="h-4 w-4"
+                        disabled={soloMosquitero}
+                      />
+                      <label htmlFor="incluirMosquitero" className={`text-sm font-medium ${soloMosquitero ? 'opacity-50' : ''}`}>
+                        🦟 Incluir Mosquitero con Ventana
+                      </label>
+                    </div>
+
+                    <div className="flex items-center space-x-2 p-3 bg-blue-50 rounded border border-blue-200">
+                      <input
+                        type="checkbox"
+                        id="soloMosquitero"
+                        checked={soloMosquitero}
+                        onChange={(e) => {
+                          setSoloMosquitero(e.target.checked);
+                          if (e.target.checked) {
+                            setIncluirMosquitero(false); // No pueden estar ambos activos
+                            setEsDvh(false); // El mosquitero no usa DVH
+                          }
+                        }}
+                        className="h-4 w-4"
+                      />
+                      <label htmlFor="soloMosquitero" className="text-sm font-medium text-blue-700">
+                        🦟 Cotizar Solo Mosquitero (Sin Ventana)
+                      </label>
+                    </div>
+                  </>
+                )}
+
                 {/* Vidrio Exterior */}
-                <div>
-                  <label className="block text-sm font-semibold mb-2">🔍 Vidrio Exterior</label>
-                  <select
-                    value={vidrioExteriorId}
-                    onChange={(e) => setVidrioExteriorId(Number(e.target.value))}
-                    className="select"
-                  >
-                    {VIDRIOS.map(vidrio => (
-                      <option key={vidrio.id} value={vidrio.id}>
-                        {vidrio.nombre} - ${vidrio.precioM2.toLocaleString()}/m²
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {!soloMosquitero && (
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">🔍 Vidrio Exterior</label>
+                    <select
+                      value={vidrioExteriorId}
+                      onChange={(e) => setVidrioExteriorId(Number(e.target.value))}
+                      className="select"
+                      disabled={soloMosquitero}
+                    >
+                      {VIDRIOS.map(vidrio => (
+                        <option key={vidrio.id} value={vidrio.id}>
+                          {vidrio.nombre} - ${vidrio.precioM2.toLocaleString()}/m²
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Configuración DVH */}
-                {esDvh && (
+                {esDvh && !soloMosquitero && (
                   <div className="space-y-4 p-3 bg-secondary rounded">
                     <div>
                       <label className="block text-sm font-semibold mb-2">🔍 Vidrio Interior</label>
@@ -433,6 +551,9 @@ export default function Cotizador() {
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold">{ventana.tipoNombre}</span>
                               <span className="badge">{ventana.acabado.color}</span>
+                              {ventana.incluirMosquitero && ventana.tipo === 'corrediza2hojas' && (
+                                <span className="badge badge-blue">Con Mosquitero</span>
+                              )}
                             </div>
                             <div className="text-sm text-muted mb-2">{ventana.medidas}</div>
                             <div className="text-lg font-bold text-green-600">
@@ -473,19 +594,18 @@ export default function Cotizador() {
                       <span className="text-green-600">${getTotalPresupuesto().toFixed(2)}</span>
                     </div>
                     
-                    // En la sección de acciones del presupuesto, reemplazar por:
-<div className="space-y-2">
-  <PresupuestoPDF 
-    ventanas={ventanasAcumuladas} 
-    cliente={cliente}
-    numeroPresupuesto={numeroPresupuesto}
-  />
-  <PresupuestoDetalladoPDF 
-    ventanas={ventanasAcumuladas} 
-    cliente={cliente}
-    numeroPresupuesto={numeroPresupuesto}
-  />
-</div>
+                    <div className="space-y-2">
+                      <PresupuestoPDF 
+                        ventanas={ventanasAcumuladas} 
+                        cliente={cliente}
+                        numeroPresupuesto={numeroPresupuesto}
+                      />
+                      <PresupuestoDetalladoPDF 
+                        ventanas={ventanasAcumuladas} 
+                        cliente={cliente}
+                        numeroPresupuesto={numeroPresupuesto}
+                      />
+                    </div>
                   </div>
                 </>
               )}

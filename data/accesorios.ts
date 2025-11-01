@@ -2,7 +2,7 @@ export type Accesorio = {
   id: string;
   nombre: string;
   descripcion?: string;
-  categoria: 'herraje' | 'sellado' | 'fijacion' | 'seguridad' | 'complemento';
+  categoria: 'herraje' | 'sellado' | 'fijacion' | 'seguridad' | 'complemento' | 'mosquitero';
   unidad: string; // 'unidad', 'metro', 'juego', 'caja'
   precioUnitario: number;
   compatibleCon: string[];
@@ -103,8 +103,8 @@ export const ACCESORIOS: Accesorio[] = [
 
   // FIJACIÓN
   {
-    id: 'TORNILLO_PARKER',
-    nombre: 'Tornillo parker nº 10 x 1½"',
+    id: 'TORNILLO1',
+    nombre: 'Tornillo 10x1/2"',
     categoria: 'fijacion',
     unidad: 'unidad',
     precioUnitario: 25,
@@ -135,6 +135,72 @@ export const ACCESORIOS: Accesorio[] = [
     unidad: 'metro',
     precioUnitario: 520,
     compatibleCon: ['corredizo', 'batiente', 'fijo']
+  },
+
+  // ACCESORIOS PARA MOSQUITERO
+  {
+    id: 'ME73',
+    nombre: 'Escuadra mosquitero',
+    categoria: 'mosquitero',
+    unidad: 'unidad',
+    precioUnitario: 720,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'MR39',
+    nombre: 'Rueda con rulemán fija',
+    categoria: 'mosquitero',
+    unidad: 'unidad',
+    precioUnitario: 1760,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'MPR43',
+    nombre: 'Deslizador mosquitero',
+    categoria: 'mosquitero',
+    unidad: 'unidad',
+    precioUnitario: 160,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'MB70',
+    nombre: 'Cordón para mosquitero',
+    categoria: 'mosquitero',
+    unidad: 'metro',
+    precioUnitario: 85,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'MB9',
+    nombre: 'Burlete tope mosquitero',
+    categoria: 'mosquitero',
+    unidad: 'metro',
+    precioUnitario: 800,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'TELA1',
+    nombre: 'Tela mosquitera aluminio 120',
+    categoria: 'mosquitero',
+    unidad: 'm2',
+    precioUnitario: 4444,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'TORNILLO2',
+    nombre: 'Tornillo 7x7/16"',
+    categoria: 'mosquitero',
+    unidad: 'unidad',
+    precioUnitario: 25,
+    compatibleCon: ['mosquitero']
+  },
+  {
+    id: 'TORNILLO3',
+    nombre: 'Tornillo tope mosquitero',
+    categoria: 'mosquitero',
+    unidad: 'unidad',
+    precioUnitario: 117,
+    compatibleCon: ['mosquitero']
   }
 ];
 
