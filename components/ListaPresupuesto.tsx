@@ -1,3 +1,4 @@
+// components/ListaPresupuesto.tsx
 import React from 'react';
 import { VentanaPresupuestada } from '@/hooks/usePresupuesto';
 
@@ -25,9 +26,10 @@ export const ListaPresupuesto: React.FC<Props> = ({
               <div>
                 <h3 className="font-semibold">{ventana.descripcion}</h3>
                 <p className="text-sm text-gray-600">{ventana.medidas}</p>
+                <p className="text-xs text-gray-500">Código: {ventana.codigo}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-bold">${ventana.precio.toLocaleString()}</span>
+                <span className="font-bold">${ventana.precioConIVA.toLocaleString()}</span>
                 <button
                   onClick={() => onEliminarVentana(ventana.id)}
                   className="text-red-500 hover:text-red-700"
