@@ -1,11 +1,11 @@
 // components/PresupuestoPDF.tsx
 "use client";
 import jsPDF from "jspdf";
-import { ReactNode } from 'react';
+import { ReactNode } from "react";
 
 interface VentanaAcumulada {
   id: string;
-  tipo: 'corrediza2hojas' | 'pañoFijo' | 'mosquitero';
+  tipo: "corrediza2hojas" | "pañoFijo" | "mosquitero";
   tipoNombre: string;
   ancho: number;
   alto: number;
@@ -39,7 +39,11 @@ interface Props {
   numeroPresupuesto: string;
 }
 
-export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }: Props): ReactNode {
+export default function PresupuestoPDF({
+  ventanas,
+  cliente,
+  numeroPresupuesto,
+}: Props): ReactNode {
   const generarPDF = async () => {
     if (ventanas.length === 0) {
       alert("No hay ventanas en el presupuesto para generar PDF");
@@ -53,7 +57,9 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
     // --- ENCABEZADO SUPERIOR ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6);
-    doc.text("Documento No Válido Como Factura", pageWidth / 2, 8, { align: "center" });
+    doc.text("Documento No Válido Como Factura", pageWidth / 2, 8, {
+      align: "center",
+    });
 
     // --- Dimensiones generales ---
     const marginX = 10;
@@ -62,7 +68,8 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
     const centerBoxWidth = 20;
     const gap = 5;
 
-    const sideBoxWidth = (pageWidth - (marginX * 2) - (gap * 2) - centerBoxWidth) / 2;
+    const sideBoxWidth =
+      (pageWidth - marginX * 2 - gap * 2 - centerBoxWidth) / 2;
     const leftX = marginX;
     const centerX = leftX + sideBoxWidth + gap;
     const rightX = centerX + centerBoxWidth + gap;
@@ -73,7 +80,12 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
     doc.line(leftX, leftTopY, leftX + sideBoxWidth, leftTopY);
     doc.line(leftX, leftTopY, leftX, leftBottomY);
     doc.line(leftX, leftBottomY, leftX + sideBoxWidth, leftBottomY);
-    doc.line(leftX + sideBoxWidth, leftTopY, leftX + sideBoxWidth, leftTopY + boxHeight - 8);
+    doc.line(
+      leftX + sideBoxWidth,
+      leftTopY,
+      leftX + sideBoxWidth,
+      leftTopY + boxHeight - 8
+    );
 
     doc.rect(centerX, yStart, centerBoxWidth, boxHeight - 12);
 
@@ -81,7 +93,12 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
     const rightBottomY = yStart + boxHeight;
     doc.line(rightX, rightTopY, rightX + sideBoxWidth, rightTopY);
     doc.line(rightX, rightTopY, rightX, rightTopY + boxHeight - 8);
-    doc.line(rightX + sideBoxWidth, rightTopY, rightX + sideBoxWidth, rightBottomY);
+    doc.line(
+      rightX + sideBoxWidth,
+      rightTopY,
+      rightX + sideBoxWidth,
+      rightBottomY
+    );
     doc.line(rightX, rightBottomY, rightX + sideBoxWidth, rightBottomY);
 
     // --- Extensiones inferiores laterales ---
@@ -90,14 +107,44 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
     const extensionY = yStart + boxHeight - extensionHeight;
 
     const leftExtensionX = leftX + sideBoxWidth;
-    doc.line(leftExtensionX, extensionY, leftExtensionX + extensionWidth, extensionY);
-    doc.line(leftExtensionX + extensionWidth, extensionY, leftExtensionX + extensionWidth, extensionY + extensionHeight);
-    doc.line(leftExtensionX, extensionY + extensionHeight, leftExtensionX + extensionWidth, extensionY + extensionHeight);
+    doc.line(
+      leftExtensionX,
+      extensionY,
+      leftExtensionX + extensionWidth,
+      extensionY
+    );
+    doc.line(
+      leftExtensionX + extensionWidth,
+      extensionY,
+      leftExtensionX + extensionWidth,
+      extensionY + extensionHeight
+    );
+    doc.line(
+      leftExtensionX,
+      extensionY + extensionHeight,
+      leftExtensionX + extensionWidth,
+      extensionY + extensionHeight
+    );
 
     const rightExtensionX = rightX - extensionWidth;
-    doc.line(rightExtensionX, extensionY, rightExtensionX + extensionWidth, extensionY);
-    doc.line(rightExtensionX, extensionY, rightExtensionX, extensionY + extensionHeight);
-    doc.line(rightExtensionX, extensionY + extensionHeight, rightExtensionX + extensionWidth, extensionY + extensionHeight);
+    doc.line(
+      rightExtensionX,
+      extensionY,
+      rightExtensionX + extensionWidth,
+      extensionY
+    );
+    doc.line(
+      rightExtensionX,
+      extensionY,
+      rightExtensionX,
+      extensionY + extensionHeight
+    );
+    doc.line(
+      rightExtensionX,
+      extensionY + extensionHeight,
+      rightExtensionX + extensionWidth,
+      extensionY + extensionHeight
+    );
 
     // --- Cargar imagen desde public ---
     const img = new Image();
@@ -114,17 +161,28 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
-      doc.text("Valle Hermoso, Córdoba", rightMargin, startY, { align: "right" });
+      doc.text("Valle Hermoso, Córdoba", rightMargin, startY, {
+        align: "right",
+      });
 
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      doc.text("Av. San Martin 300", rightMargin, startY + lineHeight, { align: "right" });
+      doc.text("Av. San Martin 300", rightMargin, startY + lineHeight, {
+        align: "right",
+      });
       doc.setFontSize(11);
-      doc.text("3548 57-0939", rightMargin, startY + lineHeight * 2, { align: "right" });
+      doc.text("3548 57-0939", rightMargin, startY + lineHeight * 2, {
+        align: "right",
+      });
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text("IVA Responsable Inscripto", rightMargin, startY + lineHeight * 5, { align: "right"});
+      doc.text(
+        "IVA Responsable Inscripto",
+        rightMargin,
+        startY + lineHeight * 5,
+        { align: "right" }
+      );
 
       // --- Texto adicional en recuadro derecho ---
       const rightBoxMargin = rightX + 3;
@@ -133,20 +191,42 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
 
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(`Presupuesto N° ${numeroPresupuesto}`, rightBoxMargin, rightStartY);
+      doc.text(
+        `Presupuesto N° ${numeroPresupuesto}`,
+        rightBoxMargin,
+        rightStartY
+      );
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
-      doc.text(`CUIT: 20-46379053-2`, rightBoxMargin, rightStartY + rightLineHeight);
-      doc.text(`Ing. Brutos: 289023836`, rightBoxMargin, rightStartY + rightLineHeight*2);
-      doc.text(`Inicio de Actividades: 01/05/2025`, rightBoxMargin, rightStartY + rightLineHeight * 3);
+      doc.text(
+        `CUIT: 20-46379053-2`,
+        rightBoxMargin,
+        rightStartY + rightLineHeight
+      );
+      doc.text(
+        `Ing. Brutos: 289023836`,
+        rightBoxMargin,
+        rightStartY + rightLineHeight * 2
+      );
+      doc.text(
+        `Inicio de Actividades: 01/05/2025`,
+        rightBoxMargin,
+        rightStartY + rightLineHeight * 3
+      );
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
-      doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, rightBoxMargin, rightStartY + rightLineHeight * 5);
+      doc.text(
+        `Fecha: ${new Date().toLocaleDateString("es-AR")}`,
+        rightBoxMargin,
+        rightStartY + rightLineHeight * 5
+      );
 
       // --- X central ---
       doc.setFont("helvetica", "bold");
       doc.setFontSize(38);
-      doc.text("X", centerX + 20 / 2, leftTopY + (boxHeight - 15) / 2 + 6, { align: "center" });
+      doc.text("X", centerX + 20 / 2, leftTopY + (boxHeight - 15) / 2 + 6, {
+        align: "center",
+      });
 
       // --- SECCIÓN CLIENTES ---
       const clientesY = leftTopY + boxHeight + 4;
@@ -157,7 +237,12 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
       doc.rect(clientesX, clientesY, clientesWidth, clientesHeight);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(16);
-      doc.text("CLIENTES", clientesX + clientesWidth / 2, clientesY + clientesHeight / 2 + 2, { align: "center" });
+      doc.text(
+        "CLIENTES",
+        clientesX + clientesWidth / 2,
+        clientesY + clientesHeight / 2 + 2,
+        { align: "center" }
+      );
 
       // --- DATOS DEL CLIENTE ---
       const dataStartY = clientesY + clientesHeight + 6;
@@ -238,12 +323,17 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
       ];
 
       const headerTextY = detalleY + detalleHeight / 2 + 2;
-      columns.forEach(col => {
+      columns.forEach((col) => {
         doc.text(col.title, col.x, headerTextY, { align: col.align });
       });
 
       const detalleContenidoY = detalleY + detalleHeight;
-      doc.line(detalleX, detalleContenidoY, detalleX + detalleWidth, detalleContenidoY);
+      doc.line(
+        detalleX,
+        detalleContenidoY,
+        detalleX + detalleWidth,
+        detalleContenidoY
+      );
 
       // --- FILAS CON DATOS REALES ---
       let currentYItems = detalleContenidoY + 8;
@@ -254,50 +344,71 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
       let subtotal = 0;
       const ivaPorcentaje = 21;
 
-      ventanas.forEach(ventana => {
+      ventanas.forEach((ventana) => {
         const precioUnitario = ventana.detalles.precios.precioVentaTotal;
         const precioConIVA = ventana.precioConIVA;
         subtotal += precioUnitario;
 
         // Construir descripción - CORREGIDO PARA MOSQUITEROS
-        let descripcion = '';
-        
-        if (ventana.tipo === 'mosquitero') {
+        let descripcion = "";
+
+        if (ventana.tipo === "mosquitero") {
           // Para mosquiteros, no mostrar información de vidrio
           descripcion = [
             `${ventana.tipoNombre} ${ventana.medidas}`,
-            `Acabado: ${ventana.acabado.color}`
-          ].join(' | ');
+            `Acabado: ${ventana.acabado.color}`,
+          ].join(" | ");
         } else {
           // Para ventanas, mostrar información de vidrio
-          const tipoVidrio = ventana.detalles.vidrios.esDvh 
+          const tipoVidrio = ventana.detalles.vidrios.esDvh
             ? `DVH (${ventana.detalles.vidrios.vidrioExterior?.nombre} + ${ventana.detalles.vidrios.vidrioInterior?.nombre})`
             : `Simple (${ventana.detalles.vidrios.vidrioExterior?.nombre})`;
-          
+
           descripcion = [
             `${ventana.tipoNombre} ${ventana.medidas}`,
             `Acabado: ${ventana.acabado.color}`,
-            `Vidrio: ${tipoVidrio}`
-          ].join(' | ');
+            `Vidrio: ${tipoVidrio}`,
+          ].join(" | ");
         }
 
         // Ajustar descripción si es muy larga
         const maxWidthDescripcion = 80;
-        const descripcionLines = doc.splitTextToSize(descripcion, maxWidthDescripcion);
+        const descripcionLines = doc.splitTextToSize(
+          descripcion,
+          maxWidthDescripcion
+        );
 
         // Dibujar fila
         const rowHeight = Math.max(10, descripcionLines.length * 5);
 
-        doc.text(ventana.codigo, detalleX + 6, currentYItems, { align: "left" });
+        doc.text(ventana.codigo, detalleX + 6, currentYItems, {
+          align: "left",
+        });
         doc.text("1", detalleX + 36, currentYItems, { align: "center" });
-        doc.text(descripcionLines, detalleX + 56, currentYItems, { align: "left" });
-        doc.text(`${ivaPorcentaje}%`, detalleX + 150, currentYItems, { align: "center" });
-        doc.text(`$${precioUnitario.toFixed(2)}`, detalleX + 180, currentYItems, { align: "right" });
-        doc.text(`$${precioConIVA.toFixed(2)}`, detalleX + 202, currentYItems, { align: "right" });
+        doc.text(descripcionLines, detalleX + 56, currentYItems, {
+          align: "left",
+        });
+        doc.text(`${ivaPorcentaje}%`, detalleX + 150, currentYItems, {
+          align: "center",
+        });
+        doc.text(
+          `$${precioUnitario.toFixed(2)}`,
+          detalleX + 180,
+          currentYItems,
+          { align: "right" }
+        );
+        doc.text(`$${precioConIVA.toFixed(2)}`, detalleX + 202, currentYItems, {
+          align: "right",
+        });
 
         // Línea separadora
         currentYItems += rowHeight + 3;
-        doc.line(detalleX, currentYItems - 5, detalleX + detalleWidth, currentYItems - 5);
+        doc.line(
+          detalleX,
+          currentYItems - 5,
+          detalleX + detalleWidth,
+          currentYItems - 5
+        );
 
         // Verificar si necesitamos nueva página
         if (currentYItems > pageHeight - 50) {
@@ -330,8 +441,8 @@ export default function PresupuestoPDF({ ventanas, cliente, numeroPresupuesto }:
         `$${format(subtotal)}`,
         `$${format(descuento)}`,
         `$${format(neto)}`,
-        `${ivaPorcentaje}%`,
-        `$${format(totalFinal)}`
+        `$${format(ivaMonto)}`, // 👈 ahora muestra el dinero
+        `$${format(totalFinal)}`,
       ];
 
       const colSpacing = totalesWidth / labels.length;
