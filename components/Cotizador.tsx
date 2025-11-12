@@ -1,552 +1,444 @@
-// components/Cotizador.tsx - VERSIÓN FINAL
+// components/Cotizador.tsx
 "use client";
-import { useState, useEffect } from 'react';
-import { VIDRIOS } from '@/data/vidrios';
-import { ACABADOS } from '@/data/acabados';
-import { calcularVentanaCorrediza2Hojas, formatearResultadoModena2Hojas, formatearResultadoVentanaConMosquitero, ResultadoCalculo, ResultadoVentanaConMosquitero, formatearResultadoSoloMosquitero } from '@/calculadoras/VentanaCorredizaModena2Hojas';
-import { calcularPañoFijoModena, formatearResultadoPañoFijo } from '@/calculadoras/PañoFijoModena';
-import { ListaPresupuesto } from './ListaPresupuesto';
-import PresupuestoPDF from './PresupuestoPDF';
-import PresupuestoDetalladoPDF from './PresupuestoDetalladoPDF';
-import { usePresupuesto } from '@/hooks/usePresupuesto';
-import { generarNumeroPresupuesto } from '@/utils/numeracionPresupuestos';
-import ToastNotification from './ToastNotification';
+import React, { useEffect, useState } from "react";
+import { VIDRIOS } from "@/data/vidrios";
+import { ACABADOS } from "@/data/acabados";
+import {
+  calcularVentanaCorrediza2Hojas,
+  formatearResultadoModena2Hojas,
+  formatearResultadoVentanaConMosquitero,
+} from "@/calculadoras/VentanaCorredizaModena2Hojas";
+import { calcularPañoFijoModena, formatearResultadoPañoFijo } from "@/calculadoras/PañoFijoModena";
+import { ListaPresupuesto } from "@/components/ListaPresupuesto";
+import PresupuestoPDF from "@/components/PresupuestoPDF";
+import { usePresupuesto } from "@/hooks/usePresupuesto";
+import { generarNumeroPresupuesto } from "@/utils/numeracionPresupuestos";
 
-type TipoVentana = 'corrediza2hojas' | 'pañoFijo';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+type TipoVentana = "corrediza2hojas" | "pañoFijo";
 
 interface Cliente {
   nombre: string;
-  localidad: string;
-  domicilio: string;
-  telefono: string;
-  dni: string;
-  cuit: string;
-  iva: string;
-  iibb: string;
+  localidad?: string;
+  domicilio?: string;
+  telefono?: string;
+  dni?: string;
+  cuit?: string;
+  iva?: string;
+  iibb?: string;
 }
 
 const CLIENTE_VACIO: Cliente = {
-  nombre: '', localidad: '', domicilio: '', telefono: '',
-  dni: '', cuit: '', iva: '', iibb: ''
+  nombre: "",
+  localidad: "",
+  domicilio: "",
+  telefono: "",
+  dni: "",
+  cuit: "",
+  iva: "",
+  iibb: "",
 };
 
-type ClienteKey = keyof Cliente;
-
-// Componentes movidos FUERA del componente principal
-const SelectorTipoVentana = ({ tipoVentana, setTipoVentana }: { 
-  tipoVentana: TipoVentana; 
-  setTipoVentana: (tipo: TipoVentana) => void;
-}) => (
-  <div className="mb-4">
-    <label className="block text-sm font-medium mb-2">Tipo de Abertura</label>
-    <select 
-      value={tipoVentana} 
-      onChange={(e) => setTipoVentana(e.target.value as TipoVentana)}
-      className="select"
-    >
-      <option value="corrediza2hojas">Ventana Corrediza 2 Hojas</option>
-      <option value="pañoFijo">Paño Fijo</option>
-    </select>
-  </div>
-);
-
-const InputMedidas = ({ ancho, setAncho, alto, setAlto }: {
-  ancho: string;
-  setAncho: (value: string) => void;
-  alto: string;
-  setAlto: (value: string) => void;
-}) => (
-  <div className="grid grid-cols-2 gap-4 mb-4">
-    <div>
-      <label className="block text-sm font-medium mb-1">Ancho (mm)</label>
-      <input
-        type="number"
-        value={ancho}
-        onChange={(e) => setAncho(e.target.value)}
-        className="input"
-        min="100"
-        step="10"
-      />
-    </div>
-    <div>
-      <label className="block text-sm font-medium mb-1">Alto (mm)</label>
-      <input
-        type="number"
-        value={alto}
-        onChange={(e) => setAlto(e.target.value)}
-        className="input"
-        min="100"
-        step="10"
-      />
-    </div>
-  </div>
-);
-
-const SelectorAcabado = ({ acabadoId, setAcabadoId }: {
-  acabadoId: string;
-  setAcabadoId: (value: string) => void;
-}) => (
-  <div className="mb-4">
-    <label className="block text-sm font-medium mb-1">Acabado</label>
-    <select value={acabadoId} onChange={(e) => setAcabadoId(e.target.value)} className="select">
-      {ACABADOS.map(acabado => (
-        <option key={acabado.id} value={acabado.id}>
-          {acabado.color} - ${acabado.preciokg.toLocaleString()}/kg
-        </option>
-      ))}
-    </select>
-  </div>
-);
-
-const ConfiguracionVidrio = ({ 
-  tipoVentana, esDvh, setEsDvh, vidrioExteriorId, setVidrioExteriorId, 
-  vidrioInteriorId, setVidrioInteriorId, espesorCamara, setEspesorCamara 
-}: {
-  tipoVentana: TipoVentana;
-  esDvh: boolean;
-  setEsDvh: (value: boolean) => void;
-  vidrioExteriorId: number;
-  setVidrioExteriorId: (value: number) => void;
-  vidrioInteriorId: number;
-  setVidrioInteriorId: (value: number) => void;
-  espesorCamara: number;
-  setEspesorCamara: (value: number) => void;
-}) => {
-  return (
-    <div className="mb-4">
-      <label className="block text-sm font-medium mb-2">Tipo de Vidrio</label>
-      <div className="flex items-center gap-4 mb-3">
-        <label className="flex items-center">
-          <input type="radio" checked={!esDvh} onChange={() => setEsDvh(false)} className="mr-2" />
-          Vidrio Simple
-        </label>
-        <label className="flex items-center">
-          <input type="radio" checked={esDvh} onChange={() => setEsDvh(true)} className="mr-2" />
-          DVH
-        </label>
-      </div>
-
-      <div className="mb-3">
-        <label className="block text-sm font-medium mb-1">
-          {esDvh ? 'Vidrio Exterior' : 'Vidrio'}
-        </label>
-        <select value={vidrioExteriorId} onChange={(e) => setVidrioExteriorId(Number(e.target.value))} className="select">
-          {VIDRIOS.map(vidrio => (
-            <option key={vidrio.id} value={vidrio.id}>
-              {vidrio.nombre} - ${vidrio.precioM2.toLocaleString()}/m²
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {esDvh && (
-        <>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Vidrio Interior</label>
-            <select value={vidrioInteriorId} onChange={(e) => setVidrioInteriorId(Number(e.target.value))} className="select">
-              {VIDRIOS.map(vidrio => (
-                <option key={vidrio.id} value={vidrio.id}>
-                  {vidrio.nombre} - ${vidrio.precioM2.toLocaleString()}/m²
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-3">
-            <label className="block text-sm font-medium mb-1">Espesor de Cámara</label>
-            <select value={espesorCamara} onChange={(e) => setEspesorCamara(Number(e.target.value))} className="select">
-              <option value={6}>6 mm</option>
-              <option value={9}>9 mm</option>
-              <option value={12}>12 mm</option>
-              <option value={15}>15 mm</option>
-            </select>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-const OpcionesMosquitero = ({ 
-  tipoVentana, 
-  incluirMosquitero, 
-  setIncluirMosquitero,
-  onAgregarSoloMosquitero 
-}: {
-  tipoVentana: TipoVentana;
-  incluirMosquitero: boolean;
-  setIncluirMosquitero: (value: boolean) => void;
-  onAgregarSoloMosquitero: () => void;
-}) => {
-  // Solo mostrar para ventanas corredizas
-  if (tipoVentana !== 'corrediza2hojas') return null;
-
-  return (
-    <div className="mb-4 space-y-3">
-      <div className="flex items-center gap-4">
-        <label className="flex items-center">
-          <input
-            type="checkbox"
-            checked={incluirMosquitero}
-            onChange={(e) => setIncluirMosquitero(e.target.checked)}
-            className="mr-2"
-          />
-          Incluir Mosquitero con la ventana
-        </label>
-      </div>
-      
-      <div className="border-t pt-3">
-        <button 
-          type="button"
-          onClick={onAgregarSoloMosquitero}
-          className="btn btn-secondary btn-sm w-full"
-        >
-          ➕ Agregar Solo el Mosquitero
-        </button>
-        <p className="text-xs text-gray-500 mt-1 text-center">
-          Solo el mosquitero para esta ventana corrediza
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const BotonesAccion = ({ 
-  resultado, 
-  agregarAlPresupuesto,
-  tipoVentana 
-}: {
-  resultado: ResultadoCalculo | ResultadoVentanaConMosquitero | null;
-  agregarAlPresupuesto: () => void;
-  tipoVentana: TipoVentana;
-}) => (
-  <div className="grid grid-cols-1 gap-4">
-    <button 
-      type="button" 
-      onClick={agregarAlPresupuesto} 
-      disabled={!resultado}
-      className="btn btn-primary disabled:opacity-50"
-    >
-      {tipoVentana === 'corrediza2hojas' ? 'Agregar Ventana al Presupuesto' : 'Agregar Paño Fijo al Presupuesto'}
-    </button>
-  </div>
-);
-
-const FormularioCliente = ({ cliente, handleClienteChange }: {
-  cliente: Cliente;
-  handleClienteChange: (campo: ClienteKey, valor: string) => void;
-}) => {
-  const camposCliente: { key: ClienteKey; label: string; placeholder: string; full?: boolean }[] = [
-    { key: 'nombre', label: 'Nombre/Razón Social', placeholder: 'Nombre del cliente' },
-    { key: 'localidad', label: 'Localidad', placeholder: 'Localidad' },
-    { key: 'domicilio', label: 'Domicilio', placeholder: 'Dirección completa', full: true },
-    { key: 'telefono', label: 'Teléfono', placeholder: 'Teléfono' },
-    { key: 'dni', label: 'DNI', placeholder: 'DNI' },
-    { key: 'cuit', label: 'CUIT/CUIL', placeholder: 'CUIT/CUIL' },
-    { key: 'iva', label: 'Condición IVA', placeholder: 'Condición IVA' },
-    { key: 'iibb', label: 'Ingresos Brutos', placeholder: 'N° IIBB' }
-  ];
-
-  return (
-    <div className="card">
-      <h2 className="text-xl font-bold mb-4">Datos del Cliente</h2>
-      <div className="grid grid-cols-2 gap-4">
-        {camposCliente.map(({ key, label, placeholder, full }) => (
-          <div key={key} className={full ? 'col-span-2' : ''}>
-            <label className="block text-sm font-medium mb-1">{label}</label>
-            <input
-              type="text"
-              value={cliente[key]}
-              onChange={(e) => handleClienteChange(key, e.target.value)}
-              className="input"
-              placeholder={placeholder}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// COMPONENTE PRINCIPAL
 export default function Cotizador() {
-  // Estados básicos
-  const [tipoVentana, setTipoVentana] = useState<TipoVentana>('corrediza2hojas');
-  const [ancho, setAncho] = useState('1000');
-  const [alto, setAlto] = useState('1000');
+  const [tipoVentana, setTipoVentana] = useState<TipoVentana>("corrediza2hojas");
+  const [ancho, setAncho] = useState("1000");
+  const [alto, setAlto] = useState("1000");
   const [vidrioExteriorId, setVidrioExteriorId] = useState(4);
   const [vidrioInteriorId, setVidrioInteriorId] = useState(4);
   const [esDvh, setEsDvh] = useState(false);
   const [espesorCamara, setEspesorCamara] = useState(6);
-  const [acabadoId, setAcabadoId] = useState('blanco-brillante');
+  const [acabadoId, setAcabadoId] = useState("blanco-brillante");
   const [incluirMosquitero, setIncluirMosquitero] = useState(false);
-  const [resultado, setResultado] = useState<ResultadoCalculo | ResultadoVentanaConMosquitero | null>(null);
-  const [resultadoTexto, setResultadoTexto] = useState('');
+  const [resultadoTexto, setResultadoTexto] = useState("");
   const [cliente, setCliente] = useState<Cliente>(CLIENTE_VACIO);
-  const [numeroPresupuesto, setNumeroPresupuesto] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [numeroPresupuesto, setNumeroPresupuesto] = useState("");
 
   const { ventanas, agregarVentana, eliminarVentana, total, limpiarPresupuesto } = usePresupuesto();
 
-  // Mostrar toast
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type });
-  };
-
-  // Efectos
   useEffect(() => {
     setNumeroPresupuesto(generarNumeroPresupuesto());
   }, []);
 
-  // Handler para los campos del cliente
-  const handleClienteChange = (campo: ClienteKey, valor: string) => {
-    setCliente(prev => ({ ...prev, [campo]: valor }));
-  };
-
-  // Cálculos automáticos
   useEffect(() => {
     calcularCotizacionAutomatica();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ancho, alto, tipoVentana, vidrioExteriorId, vidrioInteriorId, esDvh, espesorCamara, acabadoId, incluirMosquitero]);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    if (type === "success") toast.success(message, { position: "top-right", autoClose: 2200 });
+    else if (type === "error") toast.error(message, { position: "top-right", autoClose: 3000 });
+    else toast.info(message, { position: "top-right", autoClose: 2200 });
+  };
+
+  const handleClienteChange = (key: keyof Cliente, value: string) => {
+    setCliente((prev) => ({ ...prev, [key]: value }));
+  };
 
   const calcularCotizacionAutomatica = () => {
     try {
       const anchoNum = parseFloat(ancho);
       const altoNum = parseFloat(alto);
-
       if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
+        setResultadoTexto("");
         return;
       }
 
-      let resultadoCalculo;
-
-      if (tipoVentana === 'pañoFijo') {
-        resultadoCalculo = calcularPañoFijoModena(
-          anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-          esDvh, espesorCamara, VIDRIOS, acabadoId
-        );
+      if (tipoVentana === "pañoFijo") {
+        const r = calcularPañoFijoModena(anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId, esDvh, espesorCamara, VIDRIOS, acabadoId);
+        setResultadoTexto(formatearResultadoPañoFijo(r, anchoNum, altoNum));
       } else {
-        // Ventana corrediza (con o sin mosquitero)
-        resultadoCalculo = calcularVentanaCorrediza2Hojas(
-          anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-          esDvh, espesorCamara, VIDRIOS, acabadoId, incluirMosquitero, false
-        );
+        const r = calcularVentanaCorrediza2Hojas(
+          anchoNum,
+          altoNum,
+          vidrioExteriorId,
+          vidrioInteriorId,
+          esDvh,
+          espesorCamara,
+          VIDRIOS,
+          acabadoId,
+          incluirMosquitero,
+          false
+        ) as any;
+
+        if (incluirMosquitero && r.ventana) {
+          setResultadoTexto(formatearResultadoVentanaConMosquitero(r as any, anchoNum, altoNum));
+        } else {
+          setResultadoTexto(formatearResultadoModena2Hojas(r as any, anchoNum, altoNum));
+        }
       }
-
-      setResultado(resultadoCalculo);
-      formatearResultado(resultadoCalculo, anchoNum, altoNum);
-
-    } catch (error) {
-      console.error('Error al calcular:', error);
+    } catch (err) {
+      console.error(err);
+      showToast("Error al calcular la cotización", "error");
     }
   };
 
-  const formatearResultado = (resultadoCalculo: any, anchoNum: number, altoNum: number) => {
-    if (incluirMosquitero && tipoVentana === 'corrediza2hojas') {
-      setResultadoTexto(formatearResultadoVentanaConMosquitero(resultadoCalculo, anchoNum, altoNum));
-    } else if (tipoVentana === 'corrediza2hojas') {
-      setResultadoTexto(formatearResultadoModena2Hojas(resultadoCalculo, anchoNum, altoNum));
-    } else if (tipoVentana === 'pañoFijo') {
-      setResultadoTexto(formatearResultadoPañoFijo(resultadoCalculo, anchoNum, altoNum));
-    }
-  };
-
-  // AGREGAR SOLO EL MOSQUITERO
-  const agregarSoloMosquitero = () => {
-    if (tipoVentana !== 'corrediza2hojas') {
-      showToast('Solo disponible para ventanas corredizas', 'error');
-      return;
-    }
-
-    try {
-      const anchoNum = parseFloat(ancho);
-      const altoNum = parseFloat(alto);
-      const acabado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
-
-      if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
-        showToast('Complete las medidas primero', 'error');
-        return;
-      }
-
-      // Calcular solo el mosquitero para ventana corrediza
-      const resultadoMosquitero = calcularVentanaCorrediza2Hojas(
-        anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId,
-        false, espesorCamara, VIDRIOS, acabadoId, false, true
-      ) as ResultadoCalculo;
-
-      const mosquiteroParaPresupuesto = {
-        tipo: 'mosquitero' as const,
-        tipoNombre: 'Mosquitero para Ventana Corrediza',
-        ancho: anchoNum, alto: altoNum,
-        medidas: `${anchoNum}x${altoNum} mm`,
-        descripcion: `Mosquitero para ventana corrediza ${anchoNum}x${altoNum}mm - ${acabado.color}`,
-        precio: resultadoMosquitero.precios.precioVentaTotal,
-        precioConIVA: resultadoMosquitero.precios.precioVentaConIVA,
-        detalles: resultadoMosquitero, acabado,
-        incluirMosquitero: false
-      };
-
-      agregarVentana(mosquiteroParaPresupuesto);
-      showToast('Mosquitero agregado al presupuesto');
-
-    } catch (error) {
-      console.error('Error al agregar mosquitero:', error);
-      showToast('Error al agregar mosquitero', 'error');
-    }
-  };
-
-  // AGREGAR AL PRESUPUESTO
+  // Agregar ventana normal o corrediza (si hay mosquitero, viene en detalle)
   const agregarAlPresupuesto = () => {
-    if (!resultado) {
-      showToast('Complete los datos primero', 'error');
-      return;
-    }
-
     try {
       const anchoNum = parseFloat(ancho);
       const altoNum = parseFloat(alto);
-      const acabado = ACABADOS.find(a => a.id === acabadoId) || ACABADOS[0];
-
-      // SI ES VENTANA CON MOSQUITERO, AGREGAR POR SEPARADO
-      if (incluirMosquitero && tipoVentana === 'corrediza2hojas') {
-        const resultadoConMosquitero = resultado as ResultadoVentanaConMosquitero;
-        
-        // Agregar ventana
-        const ventanaParaPresupuesto = {
-          tipo: tipoVentana,
-          tipoNombre: 'Ventana Corrediza 2 Hojas',
-          ancho: anchoNum, alto: altoNum,
-          medidas: `${anchoNum}x${altoNum} mm`,
-          descripcion: `Ventana Corrediza 2 Hojas ${anchoNum}x${altoNum}mm - ${acabado.color}${esDvh ? ' - DVH' : ' - Simple'}`,
-          precio: resultadoConMosquitero.ventana.precios.precioVentaTotal,
-          precioConIVA: resultadoConMosquitero.ventana.precios.precioVentaConIVA,
-          detalles: resultadoConMosquitero.ventana, acabado,
-          incluirMosquitero: false
-        };
-        agregarVentana(ventanaParaPresupuesto);
-
-        // Agregar mosquitero por separado
-        const mosquiteroParaPresupuesto = {
-          tipo: 'mosquitero' as const,
-          tipoNombre: 'Mosquitero para Ventana Corrediza',
-          ancho: anchoNum, alto: altoNum,
-          medidas: `${anchoNum}x${altoNum} mm`,
-          descripcion: `Mosquitero para ventana corrediza ${anchoNum}x${altoNum}mm - ${acabado.color}`,
-          precio: resultadoConMosquitero.mosquitero!.precios.precioVentaTotal,
-          precioConIVA: resultadoConMosquitero.mosquitero!.precios.precioVentaConIVA,
-          detalles: resultadoConMosquitero.mosquitero!, acabado,
-          incluirMosquitero: false
-        };
-        agregarVentana(mosquiteroParaPresupuesto);
-
-        showToast('Ventana y mosquitero agregados al presupuesto');
-      } else {
-        // CASO NORMAL: solo ventana sin mosquitero
-        const ventanaParaPresupuesto = crearVentanaPresupuesto(anchoNum, altoNum, acabado);
-        agregarVentana(ventanaParaPresupuesto);
-        showToast(tipoVentana === 'corrediza2hojas' ? 'Ventana agregada al presupuesto' : 'Paño fijo agregado al presupuesto');
+      if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
+        showToast("Ingrese medidas válidas", "error");
+        return;
       }
 
-    } catch (error) {
-      console.error('Error al agregar al presupuesto:', error);
-      showToast('Error al agregar al presupuesto', 'error');
+      let detalles: any;
+      let precioConIVA = 0;
+      let tipoNombre = "";
+      const medidasStr = `${anchoNum}x${altoNum} mm`;
+
+      if (tipoVentana === "pañoFijo") {
+        detalles = calcularPañoFijoModena(anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId, esDvh, espesorCamara, VIDRIOS, acabadoId);
+        precioConIVA = detalles.precios.precioVentaConIVA;
+        tipoNombre = "Paño Fijo";
+
+        agregarVentana({
+          tipo: "pañoFijo",
+          tipoNombre,
+          ancho: anchoNum,
+          alto: altoNum,
+          medidas: medidasStr,
+          descripcion: tipoNombre,
+          precio: precioConIVA,
+          precioConIVA,
+          detalles,
+          acabado: ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0],
+        } as any);
+
+        showToast("Paño fijo agregado al presupuesto", "success");
+        return;
+      }
+
+      // corrediza
+      const r = calcularVentanaCorrediza2Hojas(
+        anchoNum,
+        altoNum,
+        vidrioExteriorId,
+        vidrioInteriorId,
+        esDvh,
+        espesorCamara,
+        VIDRIOS,
+        acabadoId,
+        incluirMosquitero,
+        false
+      ) as any;
+
+      if (incluirMosquitero && r.ventana) {
+        detalles = r;
+        precioConIVA = r.precioTotalConIVA;
+        tipoNombre = "Ventana Corrediza 2 Hojas (con Mosquitero)";
+      } else {
+        detalles = r;
+        precioConIVA = r.precios.precioVentaConIVA;
+        tipoNombre = "Ventana Corrediza 2 Hojas";
+      }
+
+      agregarVentana({
+        tipo: "corrediza2hojas",
+        tipoNombre,
+        ancho: anchoNum,
+        alto: altoNum,
+        medidas: medidasStr,
+        descripcion: tipoNombre,
+        precio: precioConIVA,
+        precioConIVA,
+        detalles,
+        acabado: ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0],
+        incluirMosquitero,
+      } as any);
+
+      showToast("Ventana agregada al presupuesto", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("No se pudo agregar al presupuesto", "error");
     }
   };
 
-  const crearVentanaPresupuesto = (anchoNum: number, altoNum: number, acabado: any) => {
-    const resultadoSimple = resultado as ResultadoCalculo;
-    return {
-      tipo: tipoVentana,
-      tipoNombre: tipoVentana === 'corrediza2hojas' ? 'Ventana Corrediza 2 Hojas' : 'Paño Fijo',
-      ancho: anchoNum, alto: altoNum,
-      medidas: `${anchoNum}x${altoNum} mm`,
-      descripcion: `${tipoVentana === 'corrediza2hojas' ? 'Ventana Corrediza 2 Hojas' : 'Paño Fijo'} ${anchoNum}x${altoNum}mm - ${acabado.color}${esDvh ? ' - DVH' : ' - Simple'}`,
-      precio: resultadoSimple.precios.precioVentaTotal,
-      precioConIVA: resultadoSimple.precios.precioVentaConIVA,
-      detalles: resultadoSimple, acabado,
-      incluirMosquitero: false
-    };
+  // --- Agregar SOLO mosquitero (para corredizas) ---
+  const agregarSoloMosquitero = () => {
+    try {
+      if (tipoVentana !== "corrediza2hojas") {
+        showToast("Solo disponible para ventanas corredizas", "error");
+        return;
+      }
+
+      const anchoNum = parseFloat(ancho);
+      const altoNum = parseFloat(alto);
+      if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
+        showToast("Ingrese medidas válidas", "error");
+        return;
+      }
+
+      // Llamo a la calculadora indicando soloMosquitero = true (último parámetro)
+      const resultadoMosquitero = calcularVentanaCorrediza2Hojas(
+        anchoNum,
+        altoNum,
+        vidrioExteriorId,
+        vidrioInteriorId,
+        esDvh,
+        espesorCamara,
+        VIDRIOS,
+        acabadoId,
+        false,
+        true
+      ) as any;
+
+      const precioConIVA = resultadoMosquitero.precios.precioVentaConIVA;
+
+      agregarVentana({
+        tipo: "mosquitero",
+        tipoNombre: "Mosquitero Modena",
+        ancho: anchoNum,
+        alto: altoNum,
+        medidas: `${anchoNum}x${altoNum} mm`,
+        descripcion: "Mosquitero",
+        precio: precioConIVA,
+        precioConIVA,
+        detalles: resultadoMosquitero,
+        acabado: ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0],
+        incluirMosquitero: true,
+      } as any);
+
+      showToast("Mosquitero agregado al presupuesto", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Error al agregar mosquitero", "error");
+    }
   };
 
   const nuevoPresupuesto = () => {
     limpiarPresupuesto();
-    setNumeroPresupuesto(generarNumeroPresupuesto());
     setCliente(CLIENTE_VACIO);
-    showToast('Nuevo presupuesto creado');
+    setNumeroPresupuesto(generarNumeroPresupuesto());
+    showToast("Nuevo presupuesto iniciado", "info");
+  };
+
+  // Copiar al portapapeles (async + fallback)
+  const handleCopy = async () => {
+    try {
+      if (!resultadoTexto) {
+        showToast("Nada para copiar", "info");
+        return;
+      }
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(resultadoTexto);
+        showToast("Copiado al portapapeles", "success");
+        return;
+      }
+
+      const textarea = document.createElement("textarea");
+      textarea.value = resultadoTexto;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const successful = document.execCommand("copy");
+      document.body.removeChild(textarea);
+
+      if (successful) showToast("Copiado al portapapeles (fallback)", "success");
+      else showToast("No se pudo copiar (fallback)", "error");
+    } catch (err) {
+      console.error("Error al copiar:", err);
+      showToast("Error al copiar al portapapeles", "error");
+    }
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      {/* Toast Notification */}
-      {toast && (
-        <ToastNotification
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+    <div style={{ padding: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr 360px", gap: 18, height: "85vh" }}>
+        {/* Izquierda: controles */}
+        <div style={{ overflowY: "auto" }} className="card">
+          <h2 className="text-xl font-bold mb-3">Controles</h2>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Sección de cotización */}
-        <div className="space-y-6">
-          <div className="card">
-            <h2 className="text-2xl font-bold mb-4">Configurar Abertura</h2>
-            <SelectorTipoVentana tipoVentana={tipoVentana} setTipoVentana={setTipoVentana} />
-            <InputMedidas ancho={ancho} setAncho={setAncho} alto={alto} setAlto={setAlto} />
-            <SelectorAcabado acabadoId={acabadoId} setAcabadoId={setAcabadoId} />
-            <ConfiguracionVidrio 
-              tipoVentana={tipoVentana}
-              esDvh={esDvh}
-              setEsDvh={setEsDvh}
-              vidrioExteriorId={vidrioExteriorId}
-              setVidrioExteriorId={setVidrioExteriorId}
-              vidrioInteriorId={vidrioInteriorId}
-              setVidrioInteriorId={setVidrioInteriorId}
-              espesorCamara={espesorCamara}
-              setEspesorCamara={setEspesorCamara}
-            />
-            <OpcionesMosquitero 
-              tipoVentana={tipoVentana}
-              incluirMosquitero={incluirMosquitero}
-              setIncluirMosquitero={setIncluirMosquitero}
-              onAgregarSoloMosquitero={agregarSoloMosquitero}
-            />
-            <BotonesAccion 
-              resultado={resultado}
-              agregarAlPresupuesto={agregarAlPresupuesto}
-              tipoVentana={tipoVentana}
-            />
+          <label className="block text-sm font-medium">Tipo de Abertura</label>
+          <select className="select mb-3" value={tipoVentana} onChange={(e) => setTipoVentana(e.target.value as TipoVentana)}>
+            <option value="corrediza2hojas">Ventana Corrediza 2 Hojas</option>
+            <option value="pañoFijo">Paño Fijo</option>
+          </select>
+
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label className="block text-sm font-medium">Ancho (mm)</label>
+              <input className="input" type="number" value={ancho} onChange={(e) => setAncho(e.target.value)} min={100} step={10} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="block text-sm font-medium">Alto (mm)</label>
+              <input className="input" type="number" value={alto} onChange={(e) => setAlto(e.target.value)} min={100} step={10} />
+            </div>
           </div>
 
-          {resultadoTexto && (
-            <div className="card">
-              <h3 className="text-xl font-bold mb-3">Resultado de la Cotización</h3>
-              <div className="bg-gray-50 p-4 rounded border">
-                <pre className="whitespace-pre-wrap text-sm">{resultadoTexto}</pre>
-              </div>
-            </div>
-          )}
-        </div>
+          <label className="block text-sm font-medium">Tipo de Vidrio</label>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8 }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="radio" checked={!esDvh} onChange={() => setEsDvh(false)} /> Vidrio simple
+            </label>
+            <label style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <input type="radio" checked={esDvh} onChange={() => setEsDvh(true)} /> DVH
+            </label>
+          </div>
 
-        {/* Sección de presupuesto */}
-        <div className="space-y-6">
-          <FormularioCliente cliente={cliente} handleClienteChange={handleClienteChange} />
-          <ListaPresupuesto ventanas={ventanas} onEliminarVentana={eliminarVentana} total={total} />
-          
-          <div className="card">
-            <h3 className="text-lg font-bold mb-3">Acciones del Presupuesto</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>N° de Presupuesto:</span>
-                <span className="font-bold">{numeroPresupuesto}</span>
-              </div>
-              <PresupuestoPDF ventanas={ventanas} cliente={cliente} numeroPresupuesto={numeroPresupuesto} />
-              <PresupuestoDetalladoPDF ventanas={ventanas} cliente={cliente} numeroPresupuesto={numeroPresupuesto} />
-              <button onClick={nuevoPresupuesto} className="btn btn-secondary w-full">
-                Nuevo Presupuesto
+          <label className="block text-sm font-medium">Vidrio exterior</label>
+          <select className="select mb-3" value={vidrioExteriorId} onChange={(e) => setVidrioExteriorId(Number(e.target.value))}>
+            {VIDRIOS.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.nombre} - ${v.precioM2.toLocaleString()}/m²
+              </option>
+            ))}
+          </select>
+
+          {esDvh && (
+            <>
+              <label className="block text-sm font-medium">Vidrio interior</label>
+              <select className="select mb-3" value={vidrioInteriorId} onChange={(e) => setVidrioInteriorId(Number(e.target.value))}>
+                {VIDRIOS.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.nombre} - ${v.precioM2.toLocaleString()}/m²
+                  </option>
+                ))}
+              </select>
+
+              <label className="block text-sm font-medium">Espesor de cámara</label>
+              <select className="select mb-3" value={espesorCamara} onChange={(e) => setEspesorCamara(Number(e.target.value))}>
+                <option value={6}>6 mm</option>
+                <option value={9}>9 mm</option>
+                <option value={12}>12 mm</option>
+                <option value={15}>15 mm</option>
+              </select>
+            </>
+          )}
+
+          <label className="block text-sm font-medium">Acabado</label>
+          <select className="select mb-3" value={acabadoId} onChange={(e) => setAcabadoId(e.target.value)}>
+            {ACABADOS.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.color} - ${a.preciokg.toLocaleString()}/kg
+              </option>
+            ))}
+          </select>
+
+          {tipoVentana === "corrediza2hojas" && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+              <input type="checkbox" checked={incluirMosquitero} onChange={(e) => setIncluirMosquitero(e.target.checked)} /> Incluir mosquitero
+            </label>
+          )}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={calcularCotizacionAutomatica} className="btn btn-secondary" style={{ flex: 1 }}>
+              Calcular
+            </button>
+            <button onClick={agregarAlPresupuesto} className="btn btn-primary" style={{ flex: 1 }}>
+              Agregar
+            </button>
+          </div>
+
+          {tipoVentana === "corrediza2hojas" && (
+            <div style={{ marginTop: 8 }}>
+              <button onClick={agregarSoloMosquitero} className="btn btn-ghost w-full">
+                Agregar solo mosquitero
               </button>
             </div>
+          )}
+
+          <hr style={{ margin: "12px 0" }} />
+
+          <h3 className="text-lg font-bold mb-2">Cliente</h3>
+          <input className="input mb-2" placeholder="Nombre" value={cliente.nombre} onChange={(e) => handleClienteChange("nombre", e.target.value)} />
+          <input className="input mb-2" placeholder="Domicilio" value={cliente.domicilio} onChange={(e) => handleClienteChange("domicilio", e.target.value)} />
+          <input className="input mb-2" placeholder="Teléfono" value={cliente.telefono} onChange={(e) => handleClienteChange("telefono", e.target.value)} />
+
+          <div style={{ height: 12 }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => { setCliente(CLIENTE_VACIO); showToast("Formulario cliente limpiado", "info"); }} className="btn btn-secondary" style={{ flex: 1 }}>
+              Limpiar
+            </button>
+            <button onClick={() => { showToast("Cliente guardado en memoria temporal", "success"); }} className="btn btn-primary" style={{ flex: 1 }}>
+              Guardar
+            </button>
+          </div>
+        </div>
+
+        {/* Centro: Resultado */}
+        <div style={{ overflowY: "auto" }} className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <h2 className="text-xl font-bold">Resultado</h2>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={handleCopy} className="btn btn-secondary">Copiar</button>
+              <button onClick={() => window.print()} className="btn btn-secondary">Imprimir</button>
+            </div>
+          </div>
+
+          <div style={{ background: "var(--secondary)", padding: 12, borderRadius: 8, minHeight: 200 }}>
+            <pre className="whitespace-pre-wrap" style={{ whiteSpace: "pre-wrap", fontSize: 13 }}>{resultadoTexto || "Aquí aparecerá el resultado de la cotización"}</pre>
+          </div>
+
+          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+            {/* estos botones pueden quedarse como accesos rápidos; el PDF real se genera desde la columna derecha */}
+            <button onClick={calcularCotizacionAutomatica} className="btn btn-secondary">Actualizar</button>
+          </div>
+        </div>
+
+        {/* Derecha: Presupuesto */}
+        <div style={{ overflowY: "auto" }} className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <h2 className="text-xl font-bold">Presupuesto</h2>
+            <div className="text-sm">N° <strong>{numeroPresupuesto}</strong></div>
+          </div>
+
+          <ListaPresupuesto ventanas={ventanas} onEliminarVentana={eliminarVentana} total={total} />
+
+          <div style={{ marginTop: 12 }}>
+            <PresupuestoPDF ventanas={ventanas as any} cliente={{ nombre: cliente.nombre || "", domicilio: cliente.domicilio || "",localidad: cliente.localidad || "", telefono: cliente.telefono || "", dni: cliente.dni || "", cuit: cliente.cuit || "", iva: cliente.iva || "", iibb: cliente.iibb || "" }} numeroPresupuesto={numeroPresupuesto} />
+            <div style={{ height: 8 }} />
+            <button onClick={nuevoPresupuesto} className="btn btn-secondary w-full">Nuevo Presupuesto</button>
+            <div style={{ height: 8 }} />
+            <button onClick={() => { /* si exportaste reiniciarContador lo podés llamar acá */ }} className="btn btn-secondary w-full">Reiniciar Numeración</button>
           </div>
         </div>
       </div>
+
+      <ToastContainer />
     </div>
   );
 }
