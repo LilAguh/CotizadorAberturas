@@ -1,7 +1,8 @@
 // components/PresupuestoPDF.tsx
 "use client";
+
 import jsPDF from "jspdf";
-import { ReactNode } from "react";
+import React, { JSX } from "react";
 
 interface VentanaAcumulada {
   id: string;
@@ -10,27 +11,29 @@ interface VentanaAcumulada {
   ancho: number;
   alto: number;
   medidas: string;
-  precioConIVA: number;
+  precio?: number;
+  precioConIVA?: number;
   detalles: any;
-  timestamp: number;
-  acabado: {
-    id: string;
-    color: string;
-    preciokg: number;
+  timestamp?: number;
+  acabado?: {
+    id?: string;
+    color?: string;
+    preciokg?: number;
   };
   incluirMosquitero?: boolean;
-  codigo: string;
+  codigo?: string;
+  descripcion?: string;
 }
 
 interface Cliente {
-  nombre: string;
-  localidad: string;
-  domicilio: string;
-  telefono: string;
-  dni: string;
-  cuit: string;
-  iva: string;
-  iibb: string;
+  nombre?: string;
+  localidad?: string;
+  domicilio?: string;
+  telefono?: string;
+  dni?: string;
+  cuit?: string;
+  iva?: string;
+  iibb?: string;
 }
 
 interface Props {
@@ -43,9 +46,9 @@ export default function PresupuestoPDF({
   ventanas,
   cliente,
   numeroPresupuesto,
-}: Props): ReactNode {
+}: Props): JSX.Element {
   const generarPDF = async () => {
-    if (ventanas.length === 0) {
+    if (!ventanas || ventanas.length === 0) {
       alert("No hay ventanas en el presupuesto para generar PDF");
       return;
     }
@@ -246,7 +249,6 @@ export default function PresupuestoPDF({
 
       // --- DATOS DEL CLIENTE ---
       const dataStartY = clientesY + clientesHeight + 6;
-      const columnWidth = (pageWidth - marginX * 2) / 2;
       const lineSpacing = 6;
       const labelFontSize = 10;
       const valueFontSize = 11;
@@ -254,54 +256,54 @@ export default function PresupuestoPDF({
       doc.setFont("helvetica", "normal");
 
       // COLUMNA IZQUIERDA
-      let currentY = dataStartY;
+      let currentYLeft = dataStartY;
       doc.setFontSize(labelFontSize);
-      doc.text("Razón social:", leftX, currentY);
+      doc.text("Razón social:", leftX, currentYLeft);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.nombre || "", leftX + 35, currentY);
+      doc.text(cliente.nombre || "", leftX + 35, currentYLeft);
 
-      currentY += lineSpacing;
+      currentYLeft += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("Localidad:", leftX, currentY);
+      doc.text("Localidad:", leftX, currentYLeft);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.localidad || "", leftX + 35, currentY);
+      doc.text(cliente.localidad || "", leftX + 35, currentYLeft);
 
-      currentY += lineSpacing;
+      currentYLeft += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("Domicilio:", leftX, currentY);
+      doc.text("Domicilio:", leftX, currentYLeft);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.domicilio || "", leftX + 35, currentY);
+      doc.text(cliente.domicilio || "", leftX + 35, currentYLeft);
 
-      currentY += lineSpacing;
+      currentYLeft += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("Teléfono:", leftX, currentY);
+      doc.text("Teléfono:", leftX, currentYLeft);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.telefono || "", leftX + 35, currentY);
+      doc.text(cliente.telefono || "", leftX + 35, currentYLeft);
 
       // COLUMNA DERECHA
-      currentY = dataStartY;
+      let currentYRight = dataStartY;
       doc.setFontSize(labelFontSize);
-      doc.text("DNI:", rightX, currentY);
+      doc.text("DNI:", rightX, currentYRight);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.dni || "", rightX + 25, currentY);
+      doc.text(cliente.dni || "", rightX + 25, currentYRight);
 
-      currentY += lineSpacing;
+      currentYRight += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("CUIT/CUIL:", rightX, currentY);
+      doc.text("CUIT/CUIL:", rightX, currentYRight);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.cuit || "", rightX + 25, currentY);
+      doc.text(cliente.cuit || "", rightX + 25, currentYRight);
 
-      currentY += lineSpacing;
+      currentYRight += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("IVA:", rightX, currentY);
+      doc.text("IVA:", rightX, currentYRight);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.iva || "", rightX + 25, currentY);
+      doc.text(cliente.iva || "", rightX + 25, currentYRight);
 
-      currentY += lineSpacing;
+      currentYRight += lineSpacing;
       doc.setFontSize(labelFontSize);
-      doc.text("Ingresos Brutos:", rightX, currentY);
+      doc.text("Ingresos Brutos:", rightX, currentYRight);
       doc.setFontSize(valueFontSize);
-      doc.text(cliente.iibb || "", rightX + 40, currentY);
+      doc.text(cliente.iibb || "", rightX + 40, currentYRight);
 
       // --- SECCIÓN DETALLE DE ITEMS ---
       const detalleY = clientesY + clientesHeight + 30;
@@ -313,13 +315,15 @@ export default function PresupuestoPDF({
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
 
+      // Columnas: quito la columna de "Código" según pedido
       const columns = [
-        { title: "Codigo", x: detalleX + 6, align: "left" as const },
-        { title: "Cantidad", x: detalleX + 36, align: "center" as const },
-        { title: "Descripcion", x: detalleX + 56, align: "left" as const },
-        { title: "%IVA", x: detalleX + 150, align: "center" as const },
-        { title: "P. Unit.", x: detalleX + 180, align: "right" as const },
+        { title: "Cantidad", x: detalleX + 6, align: "left" as const },
+        { title: "Descripcion", x: detalleX + 36, align: "center" as const },
+        { title: "%IVA", x: detalleX + 120, align: "center" as const },
+        { title: "P. Unit.", x: detalleX + 150, align: "right" as const },
+        { title: "Total s/imp", x: detalleX + 180, align: "right" as const },
         { title: "Total", x: detalleX + 202, align: "right" as const },
+
       ];
 
       const headerTextY = detalleY + detalleHeight / 2 + 2;
@@ -335,100 +339,202 @@ export default function PresupuestoPDF({
         detalleContenidoY
       );
 
-      // --- FILAS CON DATOS REALES ---
-      let currentYItems = detalleContenidoY + 8;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-
-      // Calcular totales
-      let subtotal = 0;
+      // ---------- Helpers para extraer precios ----------
       const ivaPorcentaje = 21;
 
-      ventanas.forEach((ventana) => {
-        const precioUnitario = ventana.detalles.precios.precioVentaTotal;
-        const precioConIVA = ventana.precioConIVA;
-        subtotal += precioUnitario;
+      const getPrecioUnitario = (v: any): number => {
+        const candidato =
+          v.detalles?.precios?.precioVentaTotal ??
+          v.detalles?.precioVentaTotal ??
+          v.detalles?.ventana?.precios?.precioVentaTotal ??
+          v.detalles?.mosquitero?.precios?.precioVentaTotal ??
+          v.precio;
 
-        // Construir descripción - CORREGIDO PARA MOSQUITEROS
-        let descripcion = "";
+        if (typeof candidato === "number" && !isNaN(candidato))
+          return candidato;
 
-        if (ventana.tipo === "mosquitero") {
-          // Para mosquiteros, no mostrar información de vidrio
-          descripcion = [
-            `${ventana.tipoNombre} ${ventana.medidas}`,
-            `Acabado: ${ventana.acabado.color}`,
-          ].join(" | ");
-        } else {
-          // Para ventanas, mostrar información de vidrio
-          const tipoVidrio = ventana.detalles.vidrios.esDvh
-            ? `DVH (${ventana.detalles.vidrios.vidrioExterior?.nombre} + ${ventana.detalles.vidrios.vidrioInterior?.nombre})`
-            : `Simple (${ventana.detalles.vidrios.vidrioExterior?.nombre})`;
+        const pc =
+          v.precioConIVA ??
+          v.detalles?.precios?.precioVentaConIVA ??
+          v.detalles?.precioVentaConIVA;
 
-          descripcion = [
-            `${ventana.tipoNombre} ${ventana.medidas}`,
-            `Acabado: ${ventana.acabado.color}`,
-            `Vidrio: ${tipoVidrio}`,
-          ].join(" | ");
+        if (typeof pc === "number" && !isNaN(pc)) {
+          return pc / (1 + ivaPorcentaje / 100);
         }
 
-        // Ajustar descripción si es muy larga
-        const maxWidthDescripcion = 80;
-        const descripcionLines = doc.splitTextToSize(
-          descripcion,
-          maxWidthDescripcion
-        );
+        return 0;
+      };
 
-        // Dibujar fila
-        const rowHeight = Math.max(10, descripcionLines.length * 5);
+      const getPrecioConIVA = (v: any, precioUnitario: number): number => {
+        const candidato =
+          v.precioConIVA ??
+          v.detalles?.precios?.precioVentaConIVA ??
+          v.detalles?.precioVentaConIVA;
 
-        doc.text(ventana.codigo, detalleX + 6, currentYItems, {
-          align: "left",
-        });
-        doc.text("1", detalleX + 36, currentYItems, { align: "center" });
-        doc.text(descripcionLines, detalleX + 56, currentYItems, {
-          align: "left",
-        });
-        doc.text(`${ivaPorcentaje}%`, detalleX + 150, currentYItems, {
-          align: "center",
-        });
-        doc.text(
-          `$${precioUnitario.toFixed(2)}`,
-          detalleX + 180,
-          currentYItems,
-          { align: "right" }
-        );
-        doc.text(`$${precioConIVA.toFixed(2)}`, detalleX + 202, currentYItems, {
-          align: "right",
-        });
+        if (typeof candidato === "number" && !isNaN(candidato))
+          return candidato;
 
-        // Línea separadora
-        currentYItems += rowHeight + 3;
-        doc.line(
-          detalleX,
-          currentYItems - 5,
-          detalleX + detalleWidth,
-          currentYItems - 5
-        );
+        return precioUnitario * (1 + ivaPorcentaje / 100);
+      };
 
-        // Verificar si necesitamos nueva página
-        if (currentYItems > pageHeight - 50) {
-          doc.addPage();
-          currentYItems = 20;
+      // ---------- AGRUPAR VENTANAS IGUALES ----------
+      const gruposMap = new Map<
+        string,
+        {
+          ids: string[];
+          tipo: string;
+          tipoNombre: string;
+          medidas: string;
+          descripcion: string;
+          acabadoColor?: string;
+          precioUnitario: number;
+          precioConIVA: number;
+          cantidad: number;
+          ejemploDetalle?: any;
+        }
+      >();
+
+      ventanas.forEach((v) => {
+        const vidrioExteriorId =
+          v.detalles?.vidrios?.vidrioExterior?.id ?? "ne";
+        const vidrioInteriorId =
+          v.detalles?.vidrios?.vidrioInterior?.id ?? "ni";
+        const esDvhKey = v.detalles?.vidrios?.esDvh ? "dvh" : "s";
+        const key = `${v.tipo}|${v.medidas}|${
+          v.acabado?.color ?? ""
+        }|${vidrioExteriorId}|${vidrioInteriorId}|${esDvhKey}|${
+          v.incluirMosquitero ? "m" : "n"
+        }`;
+
+        const precioUnit = getPrecioUnitario(v);
+        const precioIVA = getPrecioConIVA(v, precioUnit);
+
+        if (!gruposMap.has(key)) {
+          gruposMap.set(key, {
+            ids: [v.codigo ?? v.id],
+            tipo: v.tipo,
+            tipoNombre: v.tipoNombre,
+            medidas: v.medidas,
+            descripcion: v.descripcion ?? "",
+            acabadoColor: v.acabado?.color,
+            precioUnitario: precioUnit,
+            precioConIVA: precioIVA,
+            cantidad: 1,
+            ejemploDetalle: v.detalles,
+          });
+        } else {
+          const g = gruposMap.get(key)!;
+          g.ids.push(v.codigo ?? v.id);
+          g.cantidad += 1;
         }
       });
 
-      // --- CALCULAR TOTALES ---
+      const grupos = Array.from(gruposMap.values());
+
+      // ---------- Imprimir filas (una por grupo) ----------
+      let currentY = detalleContenidoY + 8;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+
+      let subtotal = 0;
+
+      grupos.forEach((g) => {
+  const precioUnitario = Number(g.precioUnitario || 0);
+  const precioConIVAUnit = Number(
+    g.precioConIVA || precioUnitario * (1 + ivaPorcentaje / 100)
+  );
+  const cantidad = g.cantidad || 1;
+
+  // total sin impuestos (por grupo) y total con impuestos (por grupo)
+  const totalSinImpuestos = precioUnitario * cantidad;
+  const totalConImpuestos = precioConIVAUnit * cantidad;
+
+  // acumular subtotal (sin impuestos) y unidades
+  subtotal += totalSinImpuestos;
+
+  // construir descripción breve
+  const tipoVidrio = g.ejemploDetalle?.vidrios?.esDvh
+    ? `DVH (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"} + ${g.ejemploDetalle?.vidrios?.vidrioInterior?.nombre ?? "N/A"})`
+    : `Simple (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"})`;
+
+  const descripcion = `${g.tipoNombre} ${g.medidas} | Acabado: ${g.acabadoColor ?? "N/A"} | Vidrio: ${tipoVidrio}`;
+
+  const descripcionLines = doc.splitTextToSize(descripcion, 80);
+  const rowHeight = Math.max(8, descripcionLines.length * 5);
+
+  // Imprimo cantidad, descripción, iva, unitario, total sin impuestos y total con impuestos
+  doc.text(String(cantidad), detalleX + 16, currentY, { align: "center" });
+  doc.text(descripcionLines, detalleX + 26, currentY, { align: "left" });
+  doc.text(`${ivaPorcentaje}%`, detalleX + 120, currentY, { align: "center" });
+  doc.text(`$${precioUnitario.toFixed(2)}`, detalleX + 150, currentY, { align: "right" });
+
+  // Total sin impuestos (columna que pediste)
+  doc.text(`$${totalSinImpuestos.toFixed(2)}`, detalleX + 180, currentY, { align: "right" });
+
+  // Total con impuestos (columna final)
+  doc.text(`$${totalConImpuestos.toFixed(2)}`, detalleX + 202, currentY, { align: "right" });
+
+  currentY += rowHeight + 4;
+
+  doc.line(detalleX, currentY - 3, detalleX + detalleWidth, currentY - 3);
+
+  if (currentY > pageHeight - 70) {
+    doc.addPage();
+    currentY = 20;
+  }
+});
+
+
+      // ---------- VALOR TOTAL (sin impuestos / con impuestos) ----------
       const descuento = 0;
       const neto = subtotal - descuento;
       const ivaMonto = neto * (ivaPorcentaje / 100);
       const totalFinal = neto + ivaMonto;
+      // total de unidades en el presupuesto (sumando las cantidades de cada grupo)
+const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
 
+
+      // Caja con los dos valores solicitados
+      const boxW = 140;
+      const boxH = 18;
+      const boxX = pageWidth - marginX - boxW;
+      const boxY = pageHeight - boxH - 42; // ligeramente encima del área de totales
+
+      doc.rect(boxX, boxY, boxW, boxH);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text("Valor total sin impuestos:", boxX + 6, boxY + 6, {
+        align: "left",
+      });
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `$ ${neto.toLocaleString("es-AR", { minimumFractionDigits: 2 })}`,
+        boxX + boxW - 8,
+        boxY + 6,
+        { align: "right" }
+      );
+
+      doc.setFont("helvetica", "bold");
+      doc.text("Valor total con impuestos:", boxX + 6, boxY + 14, {
+        align: "left",
+      });
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `$ ${totalFinal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}`,
+        boxX + boxW - 8,
+        boxY + 14,
+        { align: "right" }
+      );
+
+      // ---------- Totales (bloque tradicional) ----------
       const format = (num: number) =>
-        num.toLocaleString("es-AR", { minimumFractionDigits: 0 });
+        num.toLocaleString("es-AR", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
 
-      // --- SECCIÓN TOTALES ---
-      const totalesHeight = 10;
-      const totalesY = pageHeight - totalesHeight - 30;
+      const totalesHeight = 18;
+      const totalesY = pageHeight - totalesHeight - 12;
       const totalesWidth = pageWidth - marginX * 2;
       const totalesX = marginX;
 
@@ -436,25 +542,25 @@ export default function PresupuestoPDF({
       doc.setFont("helvetica", "bold");
       doc.setFontSize(10);
 
-      const labels = ["Sub. s/Dto", "Descuento", "Neto", "IVA", "Total"];
+      const labels = ["Sub. s/Dto", "Descuento", "Neto", "IVA ($)", "Total"];
       const values = [
         `$${format(subtotal)}`,
         `$${format(descuento)}`,
         `$${format(neto)}`,
-        `$${format(ivaMonto)}`, // 👈 ahora muestra el dinero
+        `$${format(ivaMonto)}`,
         `$${format(totalFinal)}`,
       ];
 
       const colSpacing = totalesWidth / labels.length;
       const baseX = totalesX;
-      const labelY = totalesY + totalesHeight / 2 + 3;
+      const labelY = totalesY + 7;
 
       labels.forEach((label, i) => {
         const xCenter = baseX + colSpacing * i + colSpacing / 2;
         doc.text(label, xCenter, labelY, { align: "center" });
       });
 
-      const valueY = totalesY + totalesHeight + 7;
+      const valueY = totalesY + totalesHeight - 4;
       values.forEach((value, i) => {
         const xCenter = baseX + colSpacing * i + colSpacing / 2;
         if (i === labels.length - 1) {
@@ -467,7 +573,16 @@ export default function PresupuestoPDF({
         doc.text(value, xCenter, valueY, { align: "center" });
       });
 
-      // Abrir PDF en nueva pestaña
+      // Pie de página
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        "Presupuesto válido por 15 días - Precios incluyen IVA",
+        marginX,
+        pageHeight - 8
+      );
+
+      // Abrir PDF
       const pdfBlob = doc.output("bloburl");
       window.open(pdfBlob as any, "_blank");
     };
@@ -477,9 +592,9 @@ export default function PresupuestoPDF({
     <button
       onClick={generarPDF}
       className="btn btn-primary w-full"
-      disabled={ventanas.length === 0}
+      disabled={!ventanas || ventanas.length === 0}
     >
-      📄 Generar Presupuesto Formal
+      Generar Presupuesto
     </button>
   );
 }
