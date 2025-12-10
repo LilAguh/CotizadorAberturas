@@ -11,38 +11,31 @@ export const ACABADOS: Acabado[] = [
   {
     id: 'blanco-brillante',
     color: 'Blanco Brillante',
-    descripcion: 'Acabado estándar blanco brillante',
+    descripcion: 'Acabado Blanco Brillante',
     preciokg: 17379,
     disponible: true
   },
-  // {
-  //   id: 'negro-mate',
-  //   color: 'Negro Mate',
-  //   descripcion: 'Acabado premium negro mate',
-  //   preciokg: 18000,
-  //   disponible: true
-  // },
-  // {
-  //   id: 'madera-chocolate',
-  //   color: 'Madera Chocolate',
-  //   descripcion: 'Acabado madera color chocolate',
-  //   preciokg: 20000,
-  //   disponible: true
-  // },
-  // {
-  //   id: 'madera-nogal',
-  //   color: 'Madera Nogal',
-  //   descripcion: 'Acabado madera color nogal',
-  //   preciokg: 20000,
-  //   disponible: true
-  // },
-  // {
-  //   id: 'gris-oscuro',
-  //   color: 'Gris Oscuro',
-  //   descripcion: 'Acabado gris oscuro mate',
-  //   preciokg: 17500,
-  //   disponible: true
-  // }
+  {
+    id: 'negro-mate',
+    color: 'Negro Mate',
+    descripcion: 'Acabado Bronce',
+    preciokg: 18480,
+    disponible: true
+  },
+  {
+    id: 'bronce',
+    color: 'Bronce',
+    descripcion: 'Acabado Bronce',
+    preciokg: 18480,
+    disponible: true
+  },
+  {
+    id: 'gris-topo',
+    color: 'Gris Topo',
+    descripcion: 'Acabado Gris Topo',
+    preciokg: 18480,
+    disponible: true
+  }
 ];
 
 // Helper functions
