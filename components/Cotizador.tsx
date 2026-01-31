@@ -116,43 +116,23 @@ export default function Cotizador() {
 
   // Agregar ventana normal o corrediza (si hay mosquitero, viene en detalle)
   const agregarAlPresupuesto = () => {
-    try {
-      const anchoNum = parseFloat(ancho);
-      const altoNum = parseFloat(alto);
-      if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
-        showToast("Ingrese medidas válidas", "error");
-        return;
-      }
+  try {
+    const anchoNum = parseFloat(ancho);
+    const altoNum = parseFloat(alto);
 
-      let detalles: any;
-      let precioConIVA = 0;
-      let tipoNombre = "";
-      const medidasStr = `${anchoNum}x${altoNum} mm`;
+    if (isNaN(anchoNum) || isNaN(altoNum) || anchoNum <= 0 || altoNum <= 0) {
+      showToast("Ingrese medidas válidas", "error");
+      return;
+    }
 
-      if (tipoVentana === "pañoFijo") {
-        detalles = calcularPañoFijoModena(anchoNum, altoNum, vidrioExteriorId, vidrioInteriorId, esDvh, espesorCamara, VIDRIOS, acabadoId);
-        precioConIVA = detalles.precios.precioVentaConIVA;
-        tipoNombre = "Paño Fijo";
+    const medidasStr = `${anchoNum}x${altoNum} mm`;
+    const acabado = ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0];
 
-        agregarVentana({
-          tipo: "pañoFijo",
-          tipoNombre,
-          ancho: anchoNum,
-          alto: altoNum,
-          medidas: medidasStr,
-          descripcion: tipoNombre,
-          precio: precioConIVA,
-          precioConIVA,
-          detalles,
-          acabado: ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0],
-        } as any);
-
-        showToast("Paño fijo agregado al presupuesto", "success");
-        return;
-      }
-
-      // corrediza
-      const r = calcularVentanaCorrediza2Hojas(
+    // =====================
+    // PAÑO FIJO
+    // =====================
+    if (tipoVentana === "pañoFijo") {
+      const detalles = calcularPañoFijoModena(
         anchoNum,
         altoNum,
         vidrioExteriorId,
@@ -160,41 +140,106 @@ export default function Cotizador() {
         esDvh,
         espesorCamara,
         VIDRIOS,
-        acabadoId,
-        incluirMosquitero,
-        false
-      ) as any;
+        acabadoId
+      );
 
-      if (incluirMosquitero && r.ventana) {
-        detalles = r;
-        precioConIVA = r.precioTotalConIVA;
-        tipoNombre = "Ventana Corrediza 2 Hojas (con Mosquitero)";
-      } else {
-        detalles = r;
-        precioConIVA = r.precios.precioVentaConIVA;
-        tipoNombre = "Ventana Corrediza 2 Hojas";
-      }
+      const precioConIVA = detalles.precios.precioVentaConIVA;
 
       agregarVentana({
-        tipo: "corrediza2hojas",
-        tipoNombre,
+        tipo: "pañoFijo",
+        tipoNombre: "Paño Fijo",
         ancho: anchoNum,
         alto: altoNum,
         medidas: medidasStr,
-        descripcion: tipoNombre,
+        descripcion: "Paño Fijo",
         precio: precioConIVA,
         precioConIVA,
         detalles,
-        acabado: ACABADOS.find((a) => a.id === acabadoId) || ACABADOS[0],
-        incluirMosquitero,
+        acabado,
       } as any);
 
-      showToast("Ventana agregada al presupuesto", "success");
-    } catch (err) {
-      console.error(err);
-      showToast("No se pudo agregar al presupuesto", "error");
+      showToast("Paño fijo agregado al presupuesto", "success");
+      return;
     }
-  };
+
+    // =====================
+    // CORREDIZA
+    // =====================
+    const r = calcularVentanaCorrediza2Hojas(
+      anchoNum,
+      altoNum,
+      vidrioExteriorId,
+      vidrioInteriorId,
+      esDvh,
+      espesorCamara,
+      VIDRIOS,
+      acabadoId,
+      incluirMosquitero,
+      false
+    ) as any;
+
+    // ---------------------
+    // CON MOSQUITERO → DOS ÍTEMS
+    // ---------------------
+    if (incluirMosquitero && r.ventana && r.mosquitero) {
+      // 🪟 Ventana
+      agregarVentana({
+        tipo: "corrediza2hojas",
+        tipoNombre: "Ventana Corrediza 2 Hojas",
+        ancho: anchoNum,
+        alto: altoNum,
+        medidas: medidasStr,
+        descripcion: "Ventana Corrediza 2 Hojas",
+        precio: r.ventana.precios.precioVentaConIVA,
+        precioConIVA: r.ventana.precios.precioVentaConIVA,
+        detalles: r.ventana,
+        acabado,
+        incluirMosquitero: false,
+      } as any);
+
+      // 🦟 Mosquitero
+      agregarVentana({
+        tipo: "mosquitero",
+        tipoNombre: "Mosquitero Modena",
+        ancho: anchoNum,
+        alto: altoNum,
+        medidas: medidasStr,
+        descripcion: "Mosquitero",
+        precio: r.mosquitero.precios.precioVentaConIVA,
+        precioConIVA: r.mosquitero.precios.precioVentaConIVA,
+        detalles: r.mosquitero,
+        acabado,
+        incluirMosquitero: true,
+      } as any);
+
+      showToast("Ventana y mosquitero agregados por separado", "success");
+      return;
+    }
+
+    // ---------------------
+    // SIN MOSQUITERO
+    // ---------------------
+    agregarVentana({
+      tipo: "corrediza2hojas",
+      tipoNombre: "Ventana Corrediza 2 Hojas",
+      ancho: anchoNum,
+      alto: altoNum,
+      medidas: medidasStr,
+      descripcion: "Ventana Corrediza 2 Hojas",
+      precio: r.precios.precioVentaConIVA,
+      precioConIVA: r.precios.precioVentaConIVA,
+      detalles: r,
+      acabado,
+      incluirMosquitero: false,
+    } as any);
+
+    showToast("Ventana agregada al presupuesto", "success");
+  } catch (err) {
+    console.error(err);
+    showToast("No se pudo agregar al presupuesto", "error");
+  }
+};
+
 
   // --- Agregar SOLO mosquitero (para corredizas) ---
   const agregarSoloMosquitero = () => {
