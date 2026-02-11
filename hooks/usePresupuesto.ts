@@ -4,7 +4,7 @@ import { generarCodigoDesdeTipo } from '@/utils/codigosVentana';
 
 export interface VentanaPresupuestada {
   id: string;
-  tipo: 'corrediza2hojas' | 'pañoFijo' | 'mosquitero';
+  tipo: 'corrediza2hojas' | 'pañoFijo' | 'mosquitero' | 'manual';
   tipoNombre: string;
   ancho: number;
   alto: number;

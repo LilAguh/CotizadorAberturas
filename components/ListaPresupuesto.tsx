@@ -25,8 +25,11 @@ export const ListaPresupuesto: React.FC<Props> = ({ ventanas, onEliminarVentana,
     ventanas.forEach(v => {
       const vidrioExteriorId = v.detalles?.vidrios?.vidrioExterior?.id ?? "ne";
       const vidrioInteriorId = v.detalles?.vidrios?.vidrioInterior?.id ?? "ni";
+      const acabadoColor = v.acabado?.color ?? "manual";
       const esDvh = v.detalles?.vidrios?.esDvh ? "dvh" : "s";
-      const key = `${v.tipo}|${v.medidas}|${v.acabado.color}|${vidrioExteriorId}|${vidrioInteriorId}|${esDvh}|${v.incluirMosquitero ? 'm' : 'n'}`;
+      // const key = `${v.tipo}|${v.medidas}|${v.acabado.color}|${vidrioExteriorId}|${vidrioInteriorId}|${esDvh}|${v.incluirMosquitero ? 'm' : 'n'}`;
+      const key = `${v.tipo}|${v.medidas}|${acabadoColor}|${vidrioExteriorId}|${vidrioInteriorId}|${esDvh}|${v.incluirMosquitero ? 'm' : 'n'}`;
+
 
       if (!map.has(key)) {
         map.set(key, {

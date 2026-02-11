@@ -2,7 +2,7 @@ export type Perfil = {
   id: number;
   nombre: string;
   sistema: string[];
-  tipo: 'marco' | 'hoja' | 'mosquitero';
+  tipo: 'marco' | 'hoja' | 'mosquitero' | 'contravidrio';
   pesoKgMl: number;
 };
 
@@ -84,6 +84,42 @@ export const PERFILES: Perfil[] = [
     sistema: ['mosquitero'],
     tipo: 'mosquitero', 
     pesoKgMl: 0.188
-  }
+  },
+  //Pano fijo
+
+  {
+    id: 3216,
+    nombre: 'Paño fijo / marco de abrir',
+    sistema: ['marco'],
+    tipo: 'marco', 
+    pesoKgMl: 0.691
+  },
+  
+  //contravidro
+  {
+    id: 3226,
+    nombre: 'Contravidrio recto 15mm',
+    sistema: ['paño fijo'],
+    tipo: 'contravidrio', 
+    pesoKgMl: 0.230
+  },{
+    id: 3225,
+    nombre: 'Contravidrio recto 22mm',
+    sistema: ['paño fijo'],
+    tipo: 'contravidrio', 
+    pesoKgMl: 0.255
+  },{
+    id: 3217,
+    nombre: 'Contravidrio recto 29mm',
+    sistema: ['paño fijo'],
+    tipo: 'contravidrio', 
+    pesoKgMl: 0.294
+  },{
+    id: 3227,
+    nombre: 'Contravidrio recto 35mm',
+    sistema: ['paño fijo'],
+    tipo: 'contravidrio', 
+    pesoKgMl: 0.319
+  },
 ]
 
