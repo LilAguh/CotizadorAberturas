@@ -61,7 +61,6 @@ export default function Cotizador() {
   const [numeroPresupuesto, setNumeroPresupuesto] = useState("");
   const [modalManualOpen, setModalManualOpen] = useState(false);
   const [modalArticuloOpen, setModalArticuloOpen] = useState(false);
-  
 
   const {
     ventanas,
@@ -285,26 +284,28 @@ export default function Cotizador() {
     }
   };
   const agregarArticuloManual = (data: {
-  titulo: string;
-  descripcion: string;
-  precio: number;
-}) => {
-  agregarVentana({
-    tipo: "manual",
-    tipoNombre: data.titulo,
-    ancho: 0,
-    alto: 0,
-    medidas: "-",
-    descripcion: data.descripcion,
-    precio: data.precio,
-    precioConIVA: data.precio,
-    detalles: { manual: true },
-    acabado: { id: "manual", color: "Manual", preciokg: 0 },
-  } as any);
+    titulo: string;
+    descripcion: string;
+    precio: number;
+    cantidad: number;
+  }) => {
+    agregarVentana({
+      tipo: "manual",
+      tipoNombre: data.titulo,
+      ancho: 0,
+      alto: 0,
+      medidas: "-",
+      descripcion: data.descripcion,
+      precio: data.precio,
+      precioConIVA: data.precio,
+      cantidad: data.cantidad,
+      detalles: { manual: true },
+      acabado: { id: "manual", color: "Manual", preciokg: 0 },
+    } as any);
 
-  setModalArticuloOpen(false);
-  showToast("Artículo manual agregado", "success");
-};
+    setModalArticuloOpen(false);
+    showToast("Artículo manual agregado", "success");
+  };
 
   // --- Agregar SOLO mosquitero (para corredizas) ---
   const agregarSoloMosquitero = () => {
@@ -583,7 +584,10 @@ export default function Cotizador() {
           <hr style={{ margin: "12px 0" }} />
           <div style={{ marginTop: 8 }}>
             <button
-              onClick={() => setModalArticuloOpen(true)}
+              onClick={() => {
+                console.log("Botón Entrada manual clickeado");
+                setModalArticuloOpen(true);
+              }}
               className="btn btn-outline w-full"
             >
               Entrada manual
@@ -742,12 +746,11 @@ export default function Cotizador() {
           </div>
         </div>
       </div>
-
       <ModalArticuloManual
-  open={modalArticuloOpen}
-  onClose={() => setModalArticuloOpen(false)}
-  onConfirm={agregarArticuloManual}  // ✅ pasas la función directamente
-/>
+        open={modalArticuloOpen}
+        onClose={() => setModalArticuloOpen(false)}
+        onConfirm={agregarArticuloManual}
+      />
 
       <ToastContainer />
     </div>

@@ -6,7 +6,7 @@ import React, { JSX } from "react";
 
 interface VentanaAcumulada {
   id: string;
-  tipo: "corrediza2hojas" | "pañoFijo" | "mosquitero";
+  tipo: "corrediza2hojas" | "pañoFijo" | "mosquitero" | "manual";
   tipoNombre: string;
   ancho: number;
   alto: number;
@@ -87,7 +87,7 @@ export default function PresupuestoPDF({
       leftX + sideBoxWidth,
       leftTopY,
       leftX + sideBoxWidth,
-      leftTopY + boxHeight - 8
+      leftTopY + boxHeight - 8,
     );
 
     doc.rect(centerX, yStart, centerBoxWidth, boxHeight - 12);
@@ -100,7 +100,7 @@ export default function PresupuestoPDF({
       rightX + sideBoxWidth,
       rightTopY,
       rightX + sideBoxWidth,
-      rightBottomY
+      rightBottomY,
     );
     doc.line(rightX, rightBottomY, rightX + sideBoxWidth, rightBottomY);
 
@@ -114,19 +114,19 @@ export default function PresupuestoPDF({
       leftExtensionX,
       extensionY,
       leftExtensionX + extensionWidth,
-      extensionY
+      extensionY,
     );
     doc.line(
       leftExtensionX + extensionWidth,
       extensionY,
       leftExtensionX + extensionWidth,
-      extensionY + extensionHeight
+      extensionY + extensionHeight,
     );
     doc.line(
       leftExtensionX,
       extensionY + extensionHeight,
       leftExtensionX + extensionWidth,
-      extensionY + extensionHeight
+      extensionY + extensionHeight,
     );
 
     const rightExtensionX = rightX - extensionWidth;
@@ -134,19 +134,19 @@ export default function PresupuestoPDF({
       rightExtensionX,
       extensionY,
       rightExtensionX + extensionWidth,
-      extensionY
+      extensionY,
     );
     doc.line(
       rightExtensionX,
       extensionY,
       rightExtensionX,
-      extensionY + extensionHeight
+      extensionY + extensionHeight,
     );
     doc.line(
       rightExtensionX,
       extensionY + extensionHeight,
       rightExtensionX + extensionWidth,
-      extensionY + extensionHeight
+      extensionY + extensionHeight,
     );
 
     // --- Cargar imagen desde public ---
@@ -184,7 +184,7 @@ export default function PresupuestoPDF({
         "IVA Responsable Inscripto",
         rightMargin,
         startY + lineHeight * 5,
-        { align: "right" }
+        { align: "right" },
       );
 
       // --- Texto adicional en recuadro derecho ---
@@ -197,31 +197,31 @@ export default function PresupuestoPDF({
       doc.text(
         `Presupuesto N° ${numeroPresupuesto}`,
         rightBoxMargin,
-        rightStartY
+        rightStartY,
       );
       doc.setFont("helvetica", "normal");
       doc.setFontSize(11);
       doc.text(
         `CUIT: 20-46379053-2`,
         rightBoxMargin,
-        rightStartY + rightLineHeight
+        rightStartY + rightLineHeight,
       );
       doc.text(
         `Ing. Brutos: 289023836`,
         rightBoxMargin,
-        rightStartY + rightLineHeight * 2
+        rightStartY + rightLineHeight * 2,
       );
       doc.text(
         `Inicio de Actividades: 01/05/2025`,
         rightBoxMargin,
-        rightStartY + rightLineHeight * 3
+        rightStartY + rightLineHeight * 3,
       );
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text(
         `Fecha: ${new Date().toLocaleDateString("es-AR")}`,
         rightBoxMargin,
-        rightStartY + rightLineHeight * 5
+        rightStartY + rightLineHeight * 5,
       );
 
       // --- X central ---
@@ -244,7 +244,7 @@ export default function PresupuestoPDF({
         "CLIENTES",
         clientesX + clientesWidth / 2,
         clientesY + clientesHeight / 2 + 2,
-        { align: "center" }
+        { align: "center" },
       );
 
       // --- DATOS DEL CLIENTE ---
@@ -323,7 +323,6 @@ export default function PresupuestoPDF({
         { title: "P. Unit.", x: detalleX + 150, align: "right" as const },
         { title: "Total s/imp", x: detalleX + 180, align: "right" as const },
         { title: "Total", x: detalleX + 202, align: "right" as const },
-
       ];
 
       const headerTextY = detalleY + detalleHeight / 2 + 2;
@@ -336,7 +335,7 @@ export default function PresupuestoPDF({
         detalleX,
         detalleContenidoY,
         detalleX + detalleWidth,
-        detalleContenidoY
+        detalleContenidoY,
       );
 
       // ---------- Helpers para extraer precios ----------
@@ -400,14 +399,26 @@ export default function PresupuestoPDF({
         const vidrioInteriorId =
           v.detalles?.vidrios?.vidrioInterior?.id ?? "ni";
         const esDvhKey = v.detalles?.vidrios?.esDvh ? "dvh" : "s";
-        const key = `${v.tipo}|${v.medidas}|${
-          v.acabado?.color ?? ""
-        }|${vidrioExteriorId}|${vidrioInteriorId}|${esDvhKey}|${
-          v.incluirMosquitero ? "m" : "n"
-        }`;
+        const isManual = v.tipo === "manual" || v.tipoNombre === "producto";
+
+        // const key = isManual
+        //   ? `manual-${v.id}`
+        //   : `${v.tipo}|${v.medidas}|${v.acabado?.color ?? ""}|${vidrioExteriorId}|${vidrioInteriorId}|${esDvhKey}|${v.incluirMosquitero ? "m" : "n"}`;
+        
 
         const precioUnit = getPrecioUnitario(v);
         const precioIVA = getPrecioConIVA(v, precioUnit);
+
+        const cantidadBase =
+  (v as any).cantidad ??
+  v.detalles?.cantidad ??
+  1;
+
+
+        const key = isManual
+  ? `manual|${v.tipoNombre}|${v.descripcion ?? ""}|${precioUnit}`
+  : `${v.tipo}|${v.medidas}|${v.acabado?.color ?? ""}|${vidrioExteriorId}|${vidrioInteriorId}|${esDvhKey}|${v.incluirMosquitero ? "m" : "n"}`;
+
 
         if (!gruposMap.has(key)) {
           gruposMap.set(key, {
@@ -419,13 +430,13 @@ export default function PresupuestoPDF({
             acabadoColor: v.acabado?.color,
             precioUnitario: precioUnit,
             precioConIVA: precioIVA,
-            cantidad: 1,
+            cantidad: cantidadBase,
             ejemploDetalle: v.detalles,
           });
         } else {
           const g = gruposMap.get(key)!;
           g.ids.push(v.codigo ?? v.id);
-          g.cantidad += 1;
+          g.cantidad += cantidadBase;
         }
       });
 
@@ -439,51 +450,89 @@ export default function PresupuestoPDF({
       let subtotal = 0;
 
       grupos.forEach((g) => {
-  const precioUnitario = Number(g.precioUnitario || 0);
-  const precioConIVAUnit = Number(
-    g.precioConIVA || precioUnitario * (1 + ivaPorcentaje / 100)
-  );
-  const cantidad = g.cantidad || 1;
+        // const precioUnitario = Number(g.precioUnitario || 0);
+        // const precioConIVAUnit = Number(
+        //   g.precioConIVA || precioUnitario * (1 + ivaPorcentaje / 100)
+        // );
+        const precioUnitario = Number(g.precioUnitario || 0);
+        const precioConIVAUnit = precioUnitario * (1 + ivaPorcentaje / 100);
 
-  // total sin impuestos (por grupo) y total con impuestos (por grupo)
-  const totalSinImpuestos = precioUnitario * cantidad;
-  const totalConImpuestos = precioConIVAUnit * cantidad;
+        const cantidad = g.cantidad || 1;
 
-  // acumular subtotal (sin impuestos) y unidades
-  subtotal += totalSinImpuestos;
+        // total sin impuestos (por grupo) y total con impuestos (por grupo)
+        const totalSinImpuestos = precioUnitario * cantidad;
+        const totalConImpuestos = precioConIVAUnit * cantidad;
 
-  // construir descripción breve
-  const tipoVidrio = g.ejemploDetalle?.vidrios?.esDvh
-    ? `DVH (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"} + ${g.ejemploDetalle?.vidrios?.vidrioInterior?.nombre ?? "N/A"})`
-    : `Simple (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"})`;
+        // acumular subtotal (sin impuestos) y unidades
+        subtotal += totalSinImpuestos;
 
-  const descripcion = `${g.tipoNombre} ${g.medidas} | Acabado: ${g.acabadoColor ?? "N/A"} | Vidrio: ${tipoVidrio}`;
+        // // construir descripción breve
+        // const tipoVidrio = g.ejemploDetalle?.vidrios?.esDvh
+        //   ? `DVH (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"} + ${g.ejemploDetalle?.vidrios?.vidrioInterior?.nombre ?? "N/A"})`
+        //   : `Simple (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"})`;
 
-  const descripcionLines = doc.splitTextToSize(descripcion, 80);
-  const rowHeight = Math.max(8, descripcionLines.length * 5);
+        // // const descripcion = `${g.tipoNombre} ${g.medidas} | Acabado: ${g.acabadoColor ?? "N/A"} | Vidrio: ${tipoVidrio}`;
+        // const descripcion =
+        //   g.tipo === "manual"
+        //     ? g.descripcion || g.tipoNombre
+        //     : `${g.tipoNombre} ${g.medidas} | Acabado: ${g.acabadoColor ?? "N/A"} | Vidrio: ${
+        //         g.ejemploDetalle?.vidrios?.esDvh
+        //           ? `DVH (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"} + ${g.ejemploDetalle?.vidrios?.vidrioInterior?.nombre ?? "N/A"})`
+        //           : `Simple (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"})`
+        //       }`;
 
-  // Imprimo cantidad, descripción, iva, unitario, total sin impuestos y total con impuestos
-  doc.text(String(cantidad), detalleX + 16, currentY, { align: "center" });
-  doc.text(descripcionLines, detalleX + 26, currentY, { align: "left" });
-  doc.text(`${ivaPorcentaje}%`, detalleX + 120, currentY, { align: "center" });
-  doc.text(`$${precioUnitario.toFixed(2)}`, detalleX + 150, currentY, { align: "right" });
+        const isManual = g.tipo === "manual" || g.tipoNombre === "producto";
 
-  // Total sin impuestos (columna que pediste)
-  doc.text(`$${totalSinImpuestos.toFixed(2)}`, detalleX + 180, currentY, { align: "right" });
+        let descripcion = "";
 
-  // Total con impuestos (columna final)
-  doc.text(`$${totalConImpuestos.toFixed(2)}`, detalleX + 202, currentY, { align: "right" });
+        if (isManual) {
+          // 👉 Manual: Título | Descripción
+          descripcion = g.descripcion
+            ? `${g.tipoNombre} | ${g.descripcion}`
+            : g.tipoNombre;
+        } else {
+          // 👉 Ventanas: descripción técnica automática
+          const tipoVidrio = g.ejemploDetalle?.vidrios?.esDvh
+            ? `DVH (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"} + ${g.ejemploDetalle?.vidrios?.vidrioInterior?.nombre ?? "N/A"})`
+            : `Simple (${g.ejemploDetalle?.vidrios?.vidrioExterior?.nombre ?? "N/A"})`;
 
-  currentY += rowHeight + 4;
+          descripcion = `${g.tipoNombre} ${g.medidas} | Acabado: ${g.acabadoColor ?? "N/A"} | Vidrio: ${tipoVidrio}`;
+        }
 
-  doc.line(detalleX, currentY - 3, detalleX + detalleWidth, currentY - 3);
+        const descripcionLines = doc.splitTextToSize(descripcion, 80);
+        const rowHeight = Math.max(8, descripcionLines.length * 5);
 
-  if (currentY > pageHeight - 70) {
-    doc.addPage();
-    currentY = 20;
-  }
-});
+        // Imprimo cantidad, descripción, iva, unitario, total sin impuestos y total con impuestos
+        doc.text(String(cantidad), detalleX + 16, currentY, {
+          align: "center",
+        });
+        doc.text(descripcionLines, detalleX + 26, currentY, { align: "left" });
+        doc.text(`${ivaPorcentaje}%`, detalleX + 120, currentY, {
+          align: "center",
+        });
+        doc.text(`$${precioUnitario.toFixed(2)}`, detalleX + 150, currentY, {
+          align: "right",
+        });
 
+        // Total sin impuestos (columna que pediste)
+        doc.text(`$${totalSinImpuestos.toFixed(2)}`, detalleX + 180, currentY, {
+          align: "right",
+        });
+
+        // Total con impuestos (columna final)
+        doc.text(`$${totalConImpuestos.toFixed(2)}`, detalleX + 202, currentY, {
+          align: "right",
+        });
+
+        currentY += rowHeight + 4;
+
+        doc.line(detalleX, currentY - 3, detalleX + detalleWidth, currentY - 3);
+
+        if (currentY > pageHeight - 70) {
+          doc.addPage();
+          currentY = 20;
+        }
+      });
 
       // ---------- VALOR TOTAL (sin impuestos / con impuestos) ----------
       const descuento = 0;
@@ -491,8 +540,7 @@ export default function PresupuestoPDF({
       const ivaMonto = neto * (ivaPorcentaje / 100);
       const totalFinal = neto + ivaMonto;
       // total de unidades en el presupuesto (sumando las cantidades de cada grupo)
-const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
-
+      const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
 
       // Caja con los dos valores solicitados
       const boxW = 140;
@@ -511,7 +559,7 @@ const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
         `$ ${neto.toLocaleString("es-AR", { minimumFractionDigits: 2 })}`,
         boxX + boxW - 8,
         boxY + 6,
-        { align: "right" }
+        { align: "right" },
       );
 
       doc.setFont("helvetica", "bold");
@@ -523,7 +571,7 @@ const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
         `$ ${totalFinal.toLocaleString("es-AR", { minimumFractionDigits: 2 })}`,
         boxX + boxW - 8,
         boxY + 14,
-        { align: "right" }
+        { align: "right" },
       );
 
       // ---------- Totales (bloque tradicional) ----------
@@ -579,7 +627,7 @@ const totalUnidades = grupos.reduce((s, g) => s + (g.cantidad || 0), 0);
       doc.text(
         "Presupuesto válido por 15 días - Precios incluyen IVA",
         marginX,
-        pageHeight - 8
+        pageHeight - 8,
       );
 
       // Abrir PDF

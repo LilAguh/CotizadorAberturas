@@ -1,13 +1,7 @@
 "use client";
 
-import {
-  Dialog,
-  DialogBackdrop,
-  DialogPanel,
-  DialogTitle,
-  Description,
-} from "@headlessui/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 interface Props {
   open: boolean;
@@ -16,80 +10,256 @@ interface Props {
     titulo: string;
     descripcion: string;
     precio: number;
+    cantidad: number;
   }) => void;
 }
 
 export function ModalArticuloManual({ open, onClose, onConfirm }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [precio, setPrecio] = useState("");
+  const [cantidad, setCantidad] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEsc);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+      document.body.style.overflow = "unset";
+    };
+  }, [open, onClose]);
 
   const handleConfirm = () => {
     const precioNum = parseFloat(precio);
-    if (!titulo || isNaN(precioNum)) return;
+    const cantidadNum = parseInt(cantidad, 10);
+
+    if (!titulo || isNaN(precioNum) || isNaN(cantidadNum) || cantidadNum < 1) {
+      return;
+    }
 
     onConfirm({
       titulo,
       descripcion,
       precio: precioNum,
+      cantidad: cantidadNum,
     });
 
     setTitulo("");
     setDescripcion("");
     setPrecio("");
+    setCantidad("");
     onClose();
   };
 
-  return (
-    <Dialog open={open} onClose={onClose} className="relative z-50">
-      {/* Backdrop: ocupa toda la pantalla y tiene fondo semitransparente */}
-      <DialogBackdrop className="fixed inset-0 bg-black/30" />
+  if (!mounted || !open) return null;
 
-      {/* Contenedor full-screen que centra el panel */}
-      <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
-        <DialogPanel className="w-full max-w-md space-y-4 rounded-lg bg-white p-6 shadow-xl">
-          <DialogTitle className="text-lg font-bold">
+  const modalRoot = document.getElementById("modal-root") || document.body;
+
+  return createPortal(
+    <>
+      {/* Overlay oscuro */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(0,0,0,0.75)",
+          zIndex: 9998,
+        }}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Contenedor centrado */}
+      <div
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "1rem",
+          zIndex: 9999,
+          pointerEvents: "none",
+        }}
+      >
+        {/* Panel del modal - invertido (oscuro) */}
+        <div
+          style={{
+            width: "100%",
+            maxWidth: "28rem",
+            backgroundColor: "#1a1a1a",
+            color: "#fff",
+            borderRadius: "0.5rem",
+            padding: "1.5rem",
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5)",
+            pointerEvents: "auto",
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+        >
+          <h2
+            id="modal-title"
+            style={{
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              marginBottom: "0.5rem",
+              color: "#fff",
+            }}
+          >
             Artículo manual
-          </DialogTitle>
-
-          <Description className="text-sm text-gray-600">
+          </h2>
+          <p
+            style={{
+              fontSize: "0.875rem",
+              color: "#ccc",
+              marginBottom: "1.5rem",
+            }}
+          >
             Agregar un ítem manual al presupuesto
-          </Description>
+          </p>
 
-          <div className="space-y-3">
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1rem",
+            }}
+          >
             <input
-              className="input w-full"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #444",
+                borderRadius: "0.5rem",
+                backgroundColor: "#333",
+                color: "#fff",
+                fontSize: "0.875rem",
+              }}
               placeholder="Título"
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
+              autoFocus
             />
-
             <input
-              className="input w-full"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #444",
+                borderRadius: "0.5rem",
+                backgroundColor: "#333",
+                color: "#fff",
+                fontSize: "0.875rem",
+              }}
               placeholder="Descripción"
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
             />
-
             <input
-              className="input w-full"
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                border: "1px solid #444",
+                borderRadius: "0.5rem",
+                backgroundColor: "#333",
+                color: "#fff",
+                fontSize: "0.875rem",
+              }}
               type="number"
-              placeholder="Precio"
+              placeholder="Precio unitario"
               value={precio}
               onChange={(e) => setPrecio(e.target.value)}
             />
+            <div>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "0.875rem",
+                  fontWeight: "500",
+                  marginBottom: "0.25rem",
+                  color: "#ccc",
+                }}
+              >
+                Cantidad
+              </label>
+              <input
+                type="number"
+                min={1}
+                style={{
+                  width: "100%",
+                  padding: "0.75rem",
+                  border: "1px solid #444",
+                  borderRadius: "0.5rem",
+                  backgroundColor: "#333",
+                  color: "#fff",
+                  fontSize: "0.875rem",
+                }}
+                placeholder="Ingresá la cantidad"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-2">
-            <button onClick={onClose} className="btn btn-secondary">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: "0.75rem",
+              marginTop: "2rem",
+            }}
+          >
+            <button
+              onClick={onClose}
+              style={{
+                padding: "0.75rem 1.5rem",
+                fontWeight: "600",
+                borderRadius: "0.5rem",
+                border: "1px solid #444",
+                backgroundColor: "transparent",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+              }}
+            >
               Cancelar
             </button>
-            <button onClick={handleConfirm} className="btn btn-primary">
+            <button
+              onClick={handleConfirm}
+              style={{
+                padding: "0.75rem 1.5rem",
+                fontWeight: "600",
+                borderRadius: "0.5rem",
+                border: "1px solid transparent",
+                backgroundColor: "#fff",
+                color: "#000",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+              }}
+            >
               Agregar
             </button>
           </div>
-        </DialogPanel>
+        </div>
       </div>
-    </Dialog>
+    </>,
+    modalRoot
   );
 }
