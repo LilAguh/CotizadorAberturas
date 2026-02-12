@@ -8,6 +8,6 @@ export const generarCodigoVentana = (): string => {
   return codigo;
 };
 
-export const generarCodigoDesdeTipo = (tipo: 'corrediza2hojas' | 'pañoFijo' | 'mosquitero'): string => {
+export const generarCodigoDesdeTipo = (tipo: 'corrediza2hojas' | 'pañoFijo' | 'mosquitero' | 'manual'): string => {
   return generarCodigoVentana();
 };

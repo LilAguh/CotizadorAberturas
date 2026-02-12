@@ -2,7 +2,7 @@ export type Accesorio = {
   id: string;
   nombre: string;
   descripcion?: string;
-  categoria: 'herraje' | 'sellado' | 'fijacion' | 'seguridad' | 'complemento' | 'mosquitero';
+  categoria: 'herraje' | 'sellado' | 'fijacion' | 'seguridad' | 'complemento' | 'mosquitero' | 'paño fijo';
   unidad: string; // 'unidad', 'metro', 'juego', 'caja'
   precioUnitario: number;
   compatibleCon: string[];
@@ -136,6 +136,15 @@ export const ACCESORIOS: Accesorio[] = [
     precioUnitario: 520,
     compatibleCon: ['corredizo', 'batiente', 'fijo']
   },
+  {
+    id: 'MB68',
+    nombre: 'Burlete exterior vidrio',
+    categoria: 'sellado',
+    unidad: 'metro',
+    precioUnitario: 480,
+    compatibleCon: ['corredizo', 'batiente', 'fijo']
+  },
+
 
   // ACCESORIOS PARA MOSQUITERO
   {
@@ -201,6 +210,16 @@ export const ACCESORIOS: Accesorio[] = [
     unidad: 'unidad',
     precioUnitario: 117,
     compatibleCon: ['mosquitero']
+  },
+
+  //marcos y paños fijos
+  {
+    id: 'ME69',
+    nombre: 'Escuadra traccion',
+    categoria: 'paño fijo',
+    unidad: 'unidad',
+    precioUnitario: 2800,
+    compatibleCon: ['marco', 'paño fijo', 'puerta']
   }
 ];
 

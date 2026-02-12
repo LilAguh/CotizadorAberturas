@@ -49,6 +49,17 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#headlessui-portal-root,
+[data-headlessui-portal] {
+  isolation: isolate;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -267,3 +278,10 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted-foreground);
 }
+
+/* DEBUG: resaltar modales
+.fixed.inset-0 {
+  border: 5px solid red !important;
+  background-color: rgba(0,0,0,0.1) !important;
+  z-index: 9999 !important;
+} */
